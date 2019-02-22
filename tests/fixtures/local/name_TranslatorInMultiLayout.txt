@@ -5,7 +5,9 @@ bibliography
 
 
 >>===== RESULT =====>>
->>[0] Aalto; Álvarez
+<div class="csl-bib-body">
+  <div class="csl-entry">I. Locke, Hrsg., 1895, Das erste Buch, Geneva: Ex Ante Press. (tran. A. Aalto, 2001, First Book, Tokyo: Ex Post Press.)</div>
+</div>
 <<===== RESULT =====<<
 
 
@@ -41,14 +43,14 @@ bibliography
     <title />
     <updated>2009-08-10T04:49:00+09:00</updated>
   </info>
-  <macro name="translation">
-    <translation delimiter=", " prefix="(" suffix=".)">
+  <macro name="alternative">
+    <alternative delimiter=", " prefix="(" suffix=".)">
       <names variable="translator">
         <label form="short" suffix=" "/>
         <name initialize-with=". "/>
       </names>
-      <translation-text/>
-    </translation>
+      <alternative-text/>
+    </alternative>
   </macro>
   <macro name="bib-entry">
     <group delimiter=". ">
@@ -64,7 +66,7 @@ bibliography
           <text variable="publisher"/>
         </group>
       </group>
-      <text macro="translation"/>
+      <text macro="alternative"/>
     </group>
   </macro>
   <citation>

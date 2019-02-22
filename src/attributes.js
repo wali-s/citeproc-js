@@ -628,6 +628,7 @@ CSL.Attributes["@locale"] = function (state, arg) {
 
     if (this.name === "layout") {
         // For layout
+        state.opt.multi_layout = true;
         this.locale_raw = arg;
         if (this.tokentype === CSL.START) {
             // Register the primary locale in the set, and others that "map" to it, 
@@ -730,6 +731,16 @@ CSL.Attributes["@authority-residue"] = function (state, arg) {
         };
     };
     this.tests.push(maketest());
+};
+
+CSL.Attributes["@alternative-node-internal"] = function (state) {
+    var maketest = function (me) {
+        return function() {
+            return !state.tmp.running_alternative;
+        }
+    }
+    var me = this;
+    this.tests.push(maketest(me));
 };
 
 CSL.Attributes["@locale-internal"] = function (state, arg) {
