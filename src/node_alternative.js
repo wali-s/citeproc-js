@@ -45,7 +45,7 @@ CSL.Node.alternative = {
                 }
                 state.registry.refhash[Item.id] = newItem;
                 state.nameOutput = new CSL.NameOutput(state, newItem);
-            }
+            };
             this.execs.push(func);
             target.push(this);
         } else if (this.tokentype === CSL.END) {
@@ -54,7 +54,7 @@ CSL.Node.alternative = {
                 state.registry.refhash[Item.id] = state.tmp.oldItem;
                 state.nameOutput = new CSL.NameOutput(state, state.tmp.oldItem);
                 state.tmp.running_alternative = true;
-            }
+            };
             this.execs.push(func);
             target.push(this);
 

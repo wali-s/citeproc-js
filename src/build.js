@@ -693,14 +693,14 @@ CSL.Engine.prototype.retrieveItem = function (id) {
             var varname;
             var elements = ["type", "title", "jurisdiction", "genre", "volume", "container-title"];
             var legislation_id = [];
-            for (i = 0, ilen = elements.length; i < ilen; i += 1) {
+            for (var i = 0, ilen = elements.length; i < ilen; i += 1) {
                 varname = elements[i];
 				if (Item[varname]) {
 					legislation_id.push(Item[varname]);
 				}
 			}
             elements = ["original-date", "issued"];
-			for (i = 0, elements.length; i < ilen; i += 1) {
+			for (var i = 0, ilen=elements.length; i < ilen; i += 1) {
                 varname = elements[i];
 				if (Item[varname] && Item[varname].year) {
 					var value = Item[varname].year;

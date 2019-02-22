@@ -734,11 +734,11 @@ CSL.Attributes["@authority-residue"] = function (state, arg) {
 };
 
 CSL.Attributes["@alternative-node-internal"] = function (state) {
-    var maketest = function (me) {
+    var maketest = function () {
         return function() {
             return !state.tmp.running_alternative;
-        }
-    }
+        };
+    };
     var me = this;
     this.tests.push(maketest(me));
 };
