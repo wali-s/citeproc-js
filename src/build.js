@@ -639,14 +639,15 @@ CSL.Engine.prototype.retrieveItem = function (id) {
     }
 
     // Normalize language field into "language" and "language-original"
-    if (Item.language) {
+    if (Item.language && Item.language.match(/[\>\<]/)) {
         // Attempt to split field in two
-        var lst = Item.language.split("<");
-        if (lst.length > 0) {
-            Item["language-name"] = lst[0];
-        }
-        if (lst.length === 2) {
-            Item["language-name-original"] = lst[1];
+        var m = Item.language.match(/(.*?)([\<\>])(.*)/);
+        if (m[2] === "<") {
+            Item["language-name"] = m[1];
+            Item["language-name-original"] = m[3];
+        } else {
+            Item["language-name"] = m[3];
+            Item["language-name-original"] = m[1];
         }
         if (this.opt.multi_layout) {
             if (Item["language-name-original"]) {
