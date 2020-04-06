@@ -8745,6 +8745,10 @@ CSL.Engine.prototype.setCitationId = function (citation, force) {
     return ret;
 };
 
+CSL.Engine.prototype.deleteAll = function () {
+  this.registry.dodeletes({});
+};
+
 CSL.Engine.prototype.rebuildProcessorState = function (citations, mode, uncitedItemIDs) {
     // Rebuilds the processor from scratch, based on a list of citation
     // objects. In a dynamic application, once the internal state of processor
