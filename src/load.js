@@ -35,7 +35,7 @@
 
 var CSL = {
 
-    PROCESSOR_VERSION: "1.2.33",
+    PROCESSOR_VERSION: "1.3.7",
 
     error: function(str) { // default error function
         if ("undefined" === typeof Error) {
@@ -533,10 +533,6 @@ var CSL = {
         "suffix",
         "delimiter"
     ],
-
-    PARALLEL_MATCH_VARS: ["container-title"],
-    PARALLEL_TYPES: ["bill","gazette","regulation","legislation","legal_case","treaty","article-magazine","article-journal"],
-    PARALLEL_COLLAPSING_MID_VARSET: ["volume", "issue", "container-title", "section", "collection-number"],
 
     LOOSE: 0,
     STRICT: 1,
@@ -1159,7 +1155,7 @@ var CSL = {
                 termStartAlpha = flags.condition.termtxt.slice(0,1).match(CSL.ALL_ROMANESQUE_REGEXP);
             }
             var num = state.tmp.just_did_number;
-            if (empty) {
+            if (empty || flags.condition.valueTerm) {
                 // i.e. Big L. Rev. 100, 102
                 //      Little L. Rev. 102
                 //      L. Rev. for Plan 9, 102
@@ -1168,9 +1164,6 @@ var CSL = {
                 } else {
                     testres = false;
                 }
-            } else if (flags.condition.valueTerm) {
-                // i.e. Ibid. at 102
-                testres = false;
             } else {
                 if (termStartAlpha) {
                     testres = true;

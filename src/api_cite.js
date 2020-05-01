@@ -906,13 +906,9 @@ CSL.getAmbiguousCite = function (Item, disambig, visualForm, item) {
         variable_success: flags.variable_success,
         output_tip: flags.output_tip,
         label_form: flags.label_form,
-        parallel_condition: flags.parallel_condition,
-        parallel_result: flags.parallel_result,
-        changes_in_condition: flags.changes_in_condition,
-        no_repeat_condition: flags.no_repeat_condition,
+        parallel_last: flags.parallel_last,
+        parallel_first: flags.parallel_first,
         parallel_delimiter_override: flags.parallel_delimiter_override,
-        parallel_repeats: flags.parallel_repeats,
-        no_repeat_repeats: flags.no_repeat_repeats,
         condition: flags.condition,
         force_suppress: flags.force_suppress,
         done_vars: flags.done_vars.slice()
@@ -1072,6 +1068,9 @@ CSL.getCitationCluster = function (inputList, citation) {
     this.tmp.last_years_used = [];
     this.tmp.backref_index = [];
     this.tmp.cite_locales = [];
+    this.tmp.abbrev_trimmer = {
+        QUASHES: {}
+    };
 
     var use_layout_prefix = this.output.checkNestedBrace.update(this.citation.opt.layout_prefix + citation_prefix);
     //var use_layout_prefix = this.citation.opt.layout_prefix;
@@ -1150,6 +1149,9 @@ CSL.getCitationCluster = function (inputList, citation) {
         }
     }
     for (pos = 0; pos < len; pos += 1) {
+
+        this.tmp.cite_index = pos;
+
         Item = inputList[pos][0];
         item = inputList[pos][1];
         item = CSL.parseLocator.call(this, item);
@@ -1226,10 +1228,6 @@ CSL.getCitationCluster = function (inputList, citation) {
         if (item["author-only"]) {
             break;
         }
-    }
-
-    if (this.opt.parallel.enable) {
-        this.parallel.purgeGroupsIfParallel();
     }
     //
     // output.queue is a simple array.  do a slice
@@ -1520,6 +1518,11 @@ CSL.citeStart = function (Item, item, blockShadowNumberReset) {
     this.tmp.nameset_counter = 0;
     this.tmp.years_used = [];
     this.tmp.names_max.clear();
+    if (!item || item.parallel === "first" || !item.parallel) {
+        this.tmp.abbrev_trimmer = {
+            QUASHES: {}
+        };
+    }
 
     this.tmp.splice_delimiter = this[this.tmp.area].opt.layout_delimiter;
     //this.tmp.splice_delimiter = this[this.tmp.area].opt.delimiter;

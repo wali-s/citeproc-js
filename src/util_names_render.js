@@ -992,8 +992,9 @@ CSL.NameOutput.prototype.fixupInstitution = function (name, varname, listpos) {
     var long_form = name["long"];
     var short_form = name["long"].slice();
     var use_short_form = false;
+    var itemJurisdiction = this.Item.jurisdiction;
     if (this.state.sys.getAbbreviation) {
-        var jurisdiction = this.Item.jurisdiction;
+        var jurisdiction = itemJurisdiction;
         for (var j = 0, jlen = long_form.length; j < jlen; j += 1) {
             var abbrevKey = long_form[j];
             jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", abbrevKey);
@@ -1004,9 +1005,30 @@ CSL.NameOutput.prototype.fixupInstitution = function (name, varname, listpos) {
         }
     }
     if (use_short_form) {
+        var delimiter = this.institution.strings.delimiter;
+        var use_first = this.institution.strings["use-first"];
+        if (use_first) {
+            if (!delimiter) {
+                delimiter = "|";
+            }
+            var buf = [];
+            for (var i=0,ilen=short_form.length;i<ilen;i++) {
+                short_form[i] = short_form[i].split("|").slice(0, use_first).join(delimiter);
+            }
+        }
         name["short"] = short_form;
     } else {
         name["short"] = [];
+    }
+    // trimmer is not available in getAmbiguousCite
+    if (itemJurisdiction) {
+        var trimmer = this.state.tmp.abbrev_trimmer;
+        if (trimmer && trimmer[itemJurisdiction] && trimmer[itemJurisdiction][varname]) {
+            for (var i=0,ilen=name["short"].length;i<ilen;i++) {
+                var frag = name["short"][i];
+                name["short"][i] = frag.replace(trimmer[itemJurisdiction][varname], "").trim();
+            }
+        }
     }
     return name;
 };
@@ -1048,15 +1070,16 @@ CSL.NameOutput.prototype._splitInstitution = function (value, v, i) {
     splitInstitution = splitInstitution.split("|");
     if (this.institution.strings.form === "short" && this.state.sys.getAbbreviation) {
         // On a match, drop unused elements to yield a single key.
-        var jurisdiction = this.Item.jurisdiction;
+        var itemJurisdiction = this.Item.jurisdiction;
         for (var j = splitInstitution.length; j > 0; j += -1) {
+            var jurisdiction = itemJurisdiction;
             var str = splitInstitution.slice(0, j).join("|");
             var abbrevKey = str;
             jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-entire", abbrevKey);
             if (this.state.transform.abbrevs[jurisdiction]["institution-entire"][abbrevKey]) {
                 var splitLst = this.state.transform.abbrevs[jurisdiction]["institution-entire"][abbrevKey];
 
-                splitLst = this.state.transform.quashCheck(splitLst);
+                splitLst = this.state.transform.quashCheck(itemJurisdiction, splitLst);
 
                 // If the abbreviation has date cut-offs, find the most recent
                 // abbreviation within scope.
