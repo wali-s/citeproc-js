@@ -77,6 +77,7 @@ CSL.Transform = function (state) {
     
     // Internal function
     function abbreviate(state, tok, Item, altvar, basevalue, family_var, use_field) {
+
         var value = "";
         var myabbrev_family = CSL.FIELD_CATEGORY_REMAP[family_var];
         var preferredJurisdiction;
@@ -86,6 +87,7 @@ CSL.Transform = function (state) {
 
         var variable = family_var;
         var normalizedKey = basevalue;
+
         if (state.sys.normalizeAbbrevsKey) {
             normalizedKey = state.sys.normalizeAbbrevsKey(family_var, basevalue);
         }
@@ -93,6 +95,11 @@ CSL.Transform = function (state) {
         if (variable === "jurisdiction" && normalizedKey) {
             quashCountry = normalizedKey.indexOf(":") === -1;
         }
+        // Fix up jurisdiction codes
+        if (["jurisdiction", "country"].indexOf(family_var) > -1 && basevalue === basevalue.toLowerCase()) {
+            normalizedKey = basevalue.toUpperCase();
+        }
+        
         
         // Lazy retrieval of abbreviations.
         if (state.sys.getAbbreviation) {
@@ -499,7 +506,9 @@ CSL.Transform = function (state) {
                 // hack syntax in this abbreviation short form.
                 if (primary) {
                     // The abbreviate() function could use a cleanup, after Zotero correct to use title-short
-                    primary = quashCheck(Item.jurisdiction, primary);
+                    if (!state.tmp.just_looking) {
+                        primary = quashCheck(Item.jurisdiction, primary);
+                    }
                 }
             }
             if (publisherCheck(this, Item, primary, family_var)) {

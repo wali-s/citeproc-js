@@ -908,6 +908,7 @@ CSL.getAmbiguousCite = function (Item, disambig, visualForm, item) {
         label_form: flags.label_form,
         parallel_last: flags.parallel_last,
         parallel_first: flags.parallel_first,
+        parallel_last_override: flags.parallel_last_override,
         parallel_delimiter_override: flags.parallel_delimiter_override,
         condition: flags.condition,
         force_suppress: flags.force_suppress,
@@ -1068,9 +1069,11 @@ CSL.getCitationCluster = function (inputList, citation) {
     this.tmp.last_years_used = [];
     this.tmp.backref_index = [];
     this.tmp.cite_locales = [];
-    this.tmp.abbrev_trimmer = {
-        QUASHES: {}
-    };
+    if (!this.tmp.just_looking) {
+        this.tmp.abbrev_trimmer = {
+            QUASHES: {}
+        };
+    }
 
     var use_layout_prefix = this.output.checkNestedBrace.update(this.citation.opt.layout_prefix + citation_prefix);
     //var use_layout_prefix = this.citation.opt.layout_prefix;
@@ -1518,10 +1521,12 @@ CSL.citeStart = function (Item, item, blockShadowNumberReset) {
     this.tmp.nameset_counter = 0;
     this.tmp.years_used = [];
     this.tmp.names_max.clear();
-    if (!item || item.parallel === "first" || !item.parallel) {
-        this.tmp.abbrev_trimmer = {
-            QUASHES: {}
-        };
+    if (!this.tmp.just_looking) {
+        if (!item || item.parallel === "first" || !item.parallel) {
+            this.tmp.abbrev_trimmer = {
+                QUASHES: {}
+            };
+        }
     }
 
     this.tmp.splice_delimiter = this[this.tmp.area].opt.layout_delimiter;

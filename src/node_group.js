@@ -2,7 +2,7 @@
 
 CSL.Node.group = {
     build: function (state, target, realGroup) {
-        var func, execs, done_vars;
+        var func, execs;
         this.realGroup = realGroup;
         if (this.tokentype === CSL.START) {
             CSL.Util.substituteStart.call(this, state, target);
@@ -57,23 +57,13 @@ CSL.Node.group = {
                             test: this.strings.reject,
                             not: true
                         };
-                        done_vars = [];
                     } else if (this.strings.require) {
                         condition = {
                             test: this.strings.require,
                             not: false
                         };
-                        done_vars = [];
                     }
-                    // CONDITION
-                    //if (!state.tmp.just_looking) {
-                    //    print("  pushing condition[" + state.tmp.group_context.mystack.length + "]: "+condition+" "+force_suppress);
-                    //}
-                    //if (!state.tmp.just_looking) {
-                    //    var params = ["variable_success", "force_suppress","term_intended", "variable_attempt"]
-                    //    print("PUSH parent="+JSON.stringify(state.tmp.group_context.tip, params))
-                    //}
-                    state.tmp.group_context.push({
+                    var context = {
                         old_term_predecessor: state.tmp.term_predecessor,
                         term_intended: false,
                         variable_attempt: false,
@@ -82,13 +72,53 @@ CSL.Node.group = {
                         output_tip: state.output.current.tip,
                         label_form: label_form,
                         label_capitalize_if_first: label_capitalize_if_first,
-                        parallel_last: this.strings.parallel_last,
-                        parallel_first: this.strings.parallel_first,
                         parallel_delimiter_override: this.strings.set_parallel_delimiter_override,
                         condition: condition,
                         force_suppress: force_suppress,
                         done_vars: state.tmp.group_context.tip.done_vars.slice()
-                    });
+                    };
+                    if(this.parallel_first) {
+                        var parallel_first = state.tmp.group_context.tip.parallel_first;
+                        if (!parallel_first) {
+                            parallel_first = {};
+                        }
+                        Object.assign(parallel_first, this.parallel_first);
+                        context.parallel_first = parallel_first;
+                    }
+                    if(this.parallel_last) {
+                        var parallel_last = state.tmp.group_context.tip.parallel_last;
+                        if (state.tmp.abbrev_trimmer && state.tmp.abbrev_trimmer.LAST_TO_FIRST) {
+                            parallel_last = {};
+                        }
+                        if (!parallel_last) {
+                            parallel_last = {};
+                        }
+                        Object.assign(parallel_last, this.parallel_last);
+                        context.parallel_last = parallel_last;
+
+                        if (state.tmp.abbrev_trimmer && state.tmp.abbrev_trimmer.LAST_TO_FIRST) {
+                            var parallel_first = state.tmp.group_context.tip.parallel_first;
+                            if (!parallel_first) {
+                                parallel_first = {};
+                            }
+                            Object.assign(parallel_first, this.parallel_last);
+                            context.parallel_first = parallel_first;
+                        }
+                    }
+                    if(this.parallel_last_override) {
+                        var parallel_last_override = state.tmp.group_context.tip.parallel_last_override;
+                        if (!parallel_last_override) {
+                            parallel_last_override = {};
+                        }
+                        Object.assign(parallel_last_override, this.parallel_last_override);
+                        context.parallel_last_override = parallel_last_override;
+                    }
+                    state.tmp.group_context.push(context);
+
+                    if (state.tmp.abbrev_trimmer && this.parallel_last_to_first) {
+                        state.tmp.abbrev_trimmer.LAST_TO_FIRST = true;
+                    }
+                    
                     //if (!state.tmp.just_looking) {
                     //    print("       flags="+JSON.stringify(state.tmp.group_context.tip, params))
                     //}
@@ -160,8 +190,8 @@ CSL.Node.group = {
                 var if_start = new CSL.Token("if", CSL.START);
 
                 func = (function (macroName) {
-                    return function (Item) {
-                        return CSL.INIT_JURISDICTION_MACROS(state, Item, macroName);
+                    return function (Item, item) {
+                        return CSL.INIT_JURISDICTION_MACROS(state, Item, item, macroName);
                     }
                 }(this.juris));
                 
@@ -172,10 +202,14 @@ CSL.Node.group = {
                 var text_node = new CSL.Token("text", CSL.SINGLETON);
                 func = function (state, Item, item) {
                     // This will run the juris- token list.
+                    var itemItem = Item;
+                    if (item && item["best-jurisdiction"] && this.juris === "juris-locator") {
+                        itemItem = item;
+                    }
                     var next = 0;
-                    if (state.juris[Item["best-jurisdiction"]][this.juris]) {
-                        while (next < state.juris[Item["best-jurisdiction"]][this.juris].length) {
-                            next = CSL.tokenExec.call(state, state.juris[Item["best-jurisdiction"]][this.juris][next], Item, item);
+                    if (state.juris[itemItem["best-jurisdiction"]][this.juris]) {
+                        while (next < state.juris[itemItem["best-jurisdiction"]][this.juris].length) {
+                            next = CSL.tokenExec.call(state, state.juris[itemItem["best-jurisdiction"]][this.juris][next], Item, item);
                         }
                     }
                 };

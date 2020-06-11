@@ -35,7 +35,7 @@
 
 var CSL = {
 
-    PROCESSOR_VERSION: "1.3.7",
+    PROCESSOR_VERSION: "1.4.1",
 
     error: function(str) { // default error function
         if ("undefined" === typeof Error) {
@@ -52,90 +52,154 @@ var CSL = {
         }
     },
 
-    LOCATOR_LABELS_REGEXP: new RegExp("^((art|ch|subch|col|fig|l|n|no|op|p|pp|para|subpara|supp|pt|r|sec|subsec|sv|sch|tit|vrs|vol)\\.)\\s+(.*)"),
+    LOCATOR_LABELS_REGEXP: new RegExp("^((vrs|sv|subpara|op|subch|add|amend|annot|app|art|bibliog|bk|ch|cl|col|cmt|dec|dept|div|ex|fig|fld|fol|n|hypo|illus|intro|l|no|p|pp|para|pt|pmbl|princ|pub|r|sched|sec|ser|subdiv|subsec|supp|tbl|tit|vol)\\.)\\s+(.*)"),
 
-    STATUTE_SUBDIV_PLAIN_REGEX: /(?:(?:^| )(?:art|bk|ch|subch|col|fig|fol|l|n|no|op|p|pp|para|subpara|supp|pt|r|sec|subsec|sv|sch|tit|vrs|vol)\. *)/,
-    STATUTE_SUBDIV_PLAIN_REGEX_FRONT: /(?:^\s*[.,;]*\s*(?:art|bk|ch|subch|col|fig|fol|l|n|no|op|p|pp|para|subpara|supp|pt|r|sec|subsec|sv|sch|tit|vrs|vol)\. *)/,
+    STATUTE_SUBDIV_PLAIN_REGEX: /(?:(?:^| )(?:vrs|sv|subpara|op|subch|add|amend|annot|app|art|bibliog|bk|ch|cl|col|cmt|dec|dept|div|ex|fig|fld|fol|n|hypo|illus|intro|l|no|p|pp|para|pt|pmbl|princ|pub|r|sched|sec|ser|subdiv|subsec|supp|tbl|tit|vol)\. *)/,
+    STATUTE_SUBDIV_PLAIN_REGEX_FRONT: /(?:^\s*[.,;]*\s*(?:vrs|sv|subpara|op|subch|add|amend|annot|app|art|bibliog|bk|ch|cl|col|cmt|dec|dept|div|ex|fig|fld|fol|n|hypo|illus|intro|l|no|p|pp|para|pt|pmbl|princ|pub|r|sched|sec|ser|subdiv|subsec|supp|tbl|tit|vol)\. *)/,
+ 
     STATUTE_SUBDIV_STRINGS: {
+        "vrs.": "verse",
+		"sv.": "sub-verbo",
+        "subpara.": "subparagraph",
+        "op.": "opus",
+        "subch.": "subchapter",
+        "add.": "addendum",
+        "amend.": "amendment",
+        "annot.": "annotation",
+        "app.": "appendix",
         "art.": "article",
+        "bibliog.": "bibliography",
         "bk.": "book",
         "ch.": "chapter",
-        "subch.": "subchapter",
+        "cl.": "clause",
+        "col.": "column",
+        "cmt.": "comment",
+        "dec.": "decision",
+        "dept.": "department",
+        "div.": "division",
+        "ex.": "example",
+        "fig.": "figure",
+        "fld.": "field",
+        "fol.": "folio",
+        "n.": "note",
+        "hypo.": "hypothetical",
+        "illus.": "illustration",
+        "intro.": "introduction",
+        "l.": "line",
+        "no.": "issue",
         "p.": "page",
         "pp.": "page",
         "para.": "paragraph",
-        "subpara.": "subparagraph",
         "pt.": "part",
+        "pmbl.": "preamble",
+        "princ.": "principle",
+        "pub.": "publication",
         "r.": "rule",
+        "sched.": "schedule",
         "sec.": "section",
+        "ser.": "series,",
+        "subdiv.": "subdivision",
         "subsec.": "subsection",
         "supp.": "supplement",
-        "sch.": "schedule",
+        "tbl.": "table",
         "tit.": "title",
-        "col.": "column",
-        "fig.": "figure",
-        "fol.": "folio",
-        "l.": "line",
-        "n.": "note",
-        "no.": "issue",
-        "op.": "opus",
-        "sv.": "sub-verbo",
-        "vrs.": "verse",
         "vol.": "volume"
     },
     STATUTE_SUBDIV_STRINGS_REVERSE: {
+        "verse": "vrs.",
+		"sub-verbo": "sv.",
+        "sub verbo": "sv.",
+        "subparagraph": "subpara.",
+        "opus": "op.",
+        "subchapter": "subch.",
+        "addendum": "add.",
+        "amendment": "amend.",
+        "annotation": "annot.",
+        "appendix": "app.",
         "article": "art.",
+        "bibliography": "bibliog.",
         "book": "bk.",
         "chapter": "ch.",
-        "subchapter": "subch.",
+        "clause": "cl.",
+        "column": "col.",
+        "comment": "cmt.",
+        "decision": "dec.",
+        "department": "dept.",
+        "division": "div.",
+        "example": "ex.",
+        "figure": "fig.",
+        "field": "fld.",
+        "folio": "fol.",
+        "note": "n.",
+        "hypothetical": "hypo.",
+        "illustration": "illus.",
+        "introduction": "intro.",
+        "line": "l.",
+        "issue": "no.",
         "page": "p.",
         "paragraph": "para.",
-        "subparagraph": "subpara.",
         "part": "pt.",
+        "preamble": "pmbl.",
+        "principle": "princ.",
+        "publication": "pub.",
         "rule": "r.",
+        "schedule": "sched.",
         "section": "sec.",
+        "series,": "ser.",
+        "subdivision": "subdiv.",
         "subsection": "subsec.",
         "supplement": "supp.",
-        "schedule": "sch.",
+        "table": "tbl.",
         "title": "tit.",
-        "column": "col.",
-        "figure": "fig.",
-        "folio": "fol.",
-        "line": "l.",
-        "note": "n.",
-        "issue": "no.",
-        "opus": "op.",
-        "sub-verbo": "sv.",
-        "sub verbo": "sv.",
-        "verse": "vrs.",
         "volume": "vol."
     },
 
     LOCATOR_LABELS_MAP: {
+        "vrs": "verse",
+		"sv": "sub-verbo",
+        "subpara": "subparagraph",
+        "op": "opus",
+        "subch": "subchapter",
+        "add": "addendum",
+        "amend": "amendment",
+        "annot": "annotation",
+        "app": "appendix",
         "art": "article",
+        "bibliog": "bibliography",
         "bk": "book",
         "ch": "chapter",
-        "subch": "subchapter",
+        "cl": "clause",
         "col": "column",
+        "cmt": "comment",
+        "dec": "decision",
+        "dept": "department",
+        "div": "division",
+        "ex": "example",
         "fig": "figure",
+        "fld": "field",
         "fol": "folio",
-        "l": "line",
         "n": "note",
+        "hypo": "hypothetical",
+        "illus": "illustration",
+        "intro": "introduction",
+        "l": "line",
         "no": "issue",
-        "op": "opus",
         "p": "page",
         "pp": "page",
         "para": "paragraph",
-        "subpara": "subparagraph",
         "pt": "part",
+        "pmbl": "preamble",
+        "princ": "principle",
+        "pub": "publication",
         "r": "rule",
-		"sec": "section",
-		"subsec": "subsection",
-		"supp": "supplement",
-		"sv": "sub-verbo",
-        "sch": "schedule",
+        "sched": "schedule",
+        "sec": "section",
+        "ser": "series,",
+        "subdiv": "subdivision",
+        "subsec": "subsection",
+        "supp": "supplement",
+        "tbl": "table",
         "tit": "title",
-        "vrs": "verse",
         "vol": "volume"
     },
     MODULE_MACROS: {
@@ -158,7 +222,8 @@ var CSL = {
         "report": true,
         "regulation": true,
         "standard": true,
-        "patent": true
+        "patent": true,
+        "locator": true
     },
     checkNestedBrace: function(state) {
         if (state.opt.xclass === "note") {
@@ -1165,10 +1230,18 @@ var CSL = {
                     testres = false;
                 }
             } else {
-                if (termStartAlpha) {
-                    testres = true;
+                if (num) {
+                    if (termStartAlpha || ["always", "after-number"].indexOf(state.opt.require_comma_on_symbol) > -1) {
+                        testres = true;
+                    } else {
+                        testres = false;
+                    }
                 } else {
-                    testres = false;
+                    if (termStartAlpha || state.opt.require_comma_on_symbol === "always") {
+                        testres = true;
+                    } else {
+                        testres = false;
+                    }
                 }
             }
         }
@@ -1290,7 +1363,7 @@ var CSL = {
         }
     },
 
-    INIT_JURISDICTION_MACROS: function (state, Item, macroName) {
+    INIT_JURISDICTION_MACROS: function (state, Item, item, macroName) {
         if (!state.sys.retrieveStyleModule || !CSL.MODULE_MACROS[macroName] || !Item.jurisdiction) {
             return false;
         }
@@ -1353,6 +1426,11 @@ var CSL = {
         // Identify the best jurisdiction for the item and return true, otherwise return false
         for (var i=0,ilen=jurisdictionList.length;i<ilen;i++) {
             var jurisdiction = jurisdictionList[i];
+            if (item) {
+                if (state.juris[jurisdiction] && !item["best-jurisdiction"] && state.juris[jurisdiction].types.locator) {
+                    item["best-jurisdiction"] = jurisdiction;
+                }
+            }
             if(state.juris[jurisdiction] && state.juris[jurisdiction].types[Item.type]) {
                 Item["best-jurisdiction"] = jurisdiction;
                 return true;

@@ -182,7 +182,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
     var symbolAnd = "\\s*&\\s*";
     var andRex = new RegExp("^" + symbolAnd+ "$");
     var joinerMatchRex = new RegExp("(" + symbolAnd + "|" + fullformAnd + "|;\\s+|,\\s+|\\s*\\\\*[\\-\\u2013]+\\s*)", "g");
-    var joinerSplitRex = new RegExp("(?:" + symbolAnd + "|" + fullformAnd + "|;\\s+|,\\s+|\\s*\\\\*[\\-\\u2013]+\\s*|\\s*&\\s*)");
+    var joinerSplitRex = new RegExp("(?:" + symbolAnd + "|" + fullformAnd + "|;\\s+|,\\s+|\\s*\\\\*[\\-\\u2013]+\\s*)");
 
     // This guesses whether the symbol form is defined or not.
     // It's the best we can do, because when locales are built, all of the
@@ -227,7 +227,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
         var m = str.match(/^([^ ]+)/);
         if (m && !CSL.STATUTE_SUBDIV_STRINGS[m[1]]) {
             var embeddedLabel = null;
-            if (["locator", "locator-extra"].indexOf(variable) > -1) {
+            if (["locator", "locator-extra", "page"].indexOf(variable) > -1) {
                 if (ItemObject.label) {
                     embeddedLabel = CSL.STATUTE_SUBDIV_STRINGS_REVERSE[ItemObject.label];
                 } else {
@@ -244,21 +244,26 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
     }
     
 
-    function composeNumberInfo(origLabel, label, val, joiningSuffix) {
+    function composeNumberInfo(origLabel, label, val, joiningSuffix, parsePosition) {
         joiningSuffix = joiningSuffix ? joiningSuffix : "";
         var info = {};
 
         if (!label && !CSL.STATUTE_SUBDIV_STRINGS_REVERSE[variable]) {
                 label = "var:"+variable;
         }
-        
+
         if (label) {
             var m = label.match(/(\s*)([^\s]+)(\s*)/);
+            if (variable === "page" && parsePosition === 0 && ["p.", "pp."].indexOf(m[2]) === -1) {
+                info.gotosleepability = true;
+                info.labelVisibility = true;
+            } else {
+                info.labelVisibility = false;
+            }
             info.label = m[2];
             info.origLabel = origLabel;
             info.labelSuffix = m[3] ? m[3] : "";
             info.plural = 0;
-            info.labelVisibility = false;
         }
         
         var m = val.match(/^([0-9]*[a-zA-Z]+0*)?([0-9]+(?:[a-zA-Z]*|[-,a-zA-Z]+))$/);
@@ -315,12 +320,16 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
         var elems = [];
         var m = mystr.match(jmrex);
         if (m) {
+            var lst = mystr.split(jsrex);
             for (var i=0, ilen=m.length; i<ilen; i++) {
                 if (m[i].match(andRex)) {
-                    m[i] = " " + localeAmpersand + " ";
+                    if (lst[i].match(/[a-zA-Z]$/) && lst[i].match(/^[a-zA-Z]/)) {
+                        m[i] = localeAmpersand;
+                    } else {
+                        m[i] = " " + localeAmpersand + " ";
+                    }
                 }
             }
-            var lst = mystr.split(jsrex);
             var recombine = false;
             for (var i in lst) {
                 if (("" + lst[i]).replace(/^[a-z]\.\s+/, "").match(/[^\s0-9ivxlcmIVXLCM]/)) {
@@ -348,9 +357,14 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
         var label = defaultLabel;
         var origLabel = "";
         for (var i=0,ilen=elems.length;i<ilen;i += 2) {
-            var m = elems[i].match(/((?:^| )(?:[a-z]|[a-z][a-z]|[a-z][a-z][a-z]|[a-z][a-z][a-z][a-z])(?:\.| ) *)/g);
+            
+            // AHA! HERE'S THE CULPRIT!!!
+            // Words up to four characters are treated as honorary short-form labels.
+            // Some valid labels are longer than four chars, so we stir those in explicitly
+            
+            var m = elems[i].match(/((?:^| )(?:[a-z]|[a-z][a-z]|[a-z][a-z][a-z]|[a-z][a-z][a-z][a-z]|subpara|subch|amend|bibliog|annot|illus|princ|intro|sched|subdiv|subsec)(?:\.| ) *)/g);
             if (m) {
-                var lst = elems[i].split(/(?:(?:^| )(?:[a-z]|[a-z][a-z]|[a-z][a-z][a-z]|[a-z][a-z][a-z][a-z])(?:\.| ) *)/);
+                var lst = elems[i].split(/(?:(?:^| )(?:[a-z]|[a-z][a-z]|[a-z][a-z][a-z]|[a-z][a-z][a-z][a-z]|subpara|subch|amend|bibliog|annot|illus|princ|intro|sched|subdiv|subsec)(?:\.| ) *)/);
                 // Head off disaster by merging parsed labels on non-numeric values into content
                 for (var j=lst.length-1;j>0;j--) {
                     if (lst[j-1] && (!lst[j].match(/^[0-9]+([-;,:a-zA-Z]*)$/) || !lst[j-1].match(/^[0-9]+([-;,:a-zA-Z]*)$/))) {
@@ -364,7 +378,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
                     var slug = m[0].trim();
                     var notAlabel = !CSL.STATUTE_SUBDIV_STRINGS[slug]
                         || "undefined" === typeof me.getTerm(CSL.STATUTE_SUBDIV_STRINGS[slug])
-                        || (["locator", "number", "locator-extra"].indexOf(variable) === -1 && CSL.STATUTE_SUBDIV_STRINGS[slug] !== variable);
+                            || (["locator", "number", "locator-extra", "page"].indexOf(variable) === -1 && CSL.STATUTE_SUBDIV_STRINGS[slug] !== variable);
                     if (notAlabel) {
                         if (i === 0) {
                             m = m.slice(1);
@@ -388,9 +402,9 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
                         //var origLabel = j > 1 ? m[j-1] : "";
                         mystr = lst[j] ? lst[j].trim() : "";
                         if (j === (lst.length-1)) {
-                            values.push(composeNumberInfo(filteredOrigLabel, label, mystr, elems[i+1]));
+                            values.push(composeNumberInfo(filteredOrigLabel, label, mystr, elems[i+1], i));
                         } else {
-                            values.push(composeNumberInfo(filteredOrigLabel, label, mystr));
+                            values.push(composeNumberInfo(filteredOrigLabel, label, mystr, null, i));
                         }
                     }
                 }
@@ -460,7 +474,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
     function fixLabelVisibility(values, groupStartPos, currentLabelInfo) {
         if (currentLabelInfo.label.slice(0, 4) !== "var:") {
             if (currentLabelInfo.pos === 0) {
-                if (["locator", "number", "locator-extra"].indexOf(variable) > -1) {
+                if (["locator", "number", "locator-extra", "page"].indexOf(variable) > -1) {
                     // Actually, shouldn't we do this always?
                     if (!me.getTerm(CSL.STATUTE_SUBDIV_STRINGS[currentLabelInfo.label])) {
                         values[currentLabelInfo.pos].labelVisibility = true;
@@ -470,7 +484,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
                 // label embedded at the start of a field that
                 // does not match the context, it should be
                 // marked for rendering.
-                if (["locator", "number", "locator-extra"].indexOf(variable) === -1) {
+                if (["locator", "number", "locator-extra", "page"].indexOf(variable) === -1) {
                     if (CSL.STATUTE_SUBDIV_STRINGS[currentLabelInfo.label] !== variable) {
                         values[0].labelVisibility = true;
                     }
@@ -577,7 +591,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
 
     function checkTerm(variable, val) {
         var ret = true;
-        if (["locator", "locator-extra"].indexOf(variable) > -1) {
+        if (["locator", "locator-extra", "page"].indexOf(variable) > -1) {
             var label;
             if (val.origLabel) {
                 label = val.origLabel;
@@ -802,16 +816,15 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
 
     // Process only if there is a value.
     if ("undefined" !== typeof val && ("string" === typeof val || "number" === typeof val)) {
-
         if ("number" === typeof val) {
             val = "" + val;
         }
         var defaultLabel = CSL.STATUTE_SUBDIV_STRINGS_REVERSE[variable];
 
-        if (!this.tmp.shadow_numbers.values) {
+        if (this.tmp.shadow_numbers[variable].values.length === 0) {
             // XXX
             var values = parseString(val, defaultLabel);
-            
+
             setSpaces(values);
             //print("setSpaces(): "+JSON.stringify(values, null, 2));
 
@@ -823,19 +836,19 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
             }
             this.tmp.shadow_numbers[variable].values = values;
             // me.sys.print(JSON.stringify(values))
+
+            if (node) {
+                fixRanges(values);
+                
+                this.tmp.shadow_numbers[variable].masterStyling = setStyling(values);
+                //print("setStyling(): "+JSON.stringify(values, null, 2));
+            }
+            setVariableParams(this.tmp.shadow_numbers, variable, values);
         }
-
-        if (node) {
-            fixRanges(values);
-
-            this.tmp.shadow_numbers[variable].masterStyling = setStyling(values);
-            //print("setStyling(): "+JSON.stringify(values, null, 2));
-        }
-
-        setVariableParams(this.tmp.shadow_numbers, variable, values);
+        
         // hack in support for non-numeric numerics like "91 Civ. 5442 (RPP)|91 Civ. 5471"
+        var info = this.tmp.shadow_numbers[variable];
         if (variable === "number") {
-            var info = this.tmp.shadow_numbers[variable];
             if (info.values.length === 1 && info.values[0].value.indexOf("|") > -1) {
                 info.values[0].value = info.values[0].value.replace(/\|/g, ", ");
                 info.values[0].numeric = true;
@@ -846,7 +859,24 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
                 info.collapsible = false;
             }
         }
-        //print("OK "+JSON.stringify(values, ["label", "origLabel", "labelSuffix", "particle", "collapsible", "value", "numeric", "joiningSuffix", "labelVisibility", "plural"], 2));
+        if (info.values.length === 1) {
+            if (info.values[0].value.match(/^[0-9]+(?:\/[0-9]+)+$/)) {
+                info.values[0].numeric = true;
+                info.values[0].plural = 0;
+                info.values[0].collapsible = false;
+                info.numeric = true;
+                info.plural = 0;
+                info.collapsible = false;
+            }
+        }
+        if (variable === "page") {
+            if (info.values.length > 0) {
+                if (info.values[0].gotosleepability) {
+                    info.labelForm = "short";
+                }
+            }
+        }
+        //this.sys.print("OK "+JSON.stringify(values, ["label", "origLabel", "labelSuffix", "particle", "collapsible", "value", "numeric", "joiningSuffix", "labelVisibility", "plural"], 2));
     }
 };
 
@@ -866,6 +896,7 @@ CSL.Util.outputNumericField = function(state, varname, itemID) {
     var labelCapitalizeIfFirst = state.tmp.shadow_numbers[varname].labelCapitalizeIfFirst;
     var labelDecorations = state.tmp.shadow_numbers[varname].labelDecorations;
     var lastLabelName = null;
+
     for (var i=0,ilen=nums.length;i<ilen;i++) {
         var num = nums[i];
         var label = "";
