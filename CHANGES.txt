@@ -1,4 +1,31 @@
 ========================
+Changes in version 1.4.5
+========================
+
+- Apply limit-day-ordinals-to-day-1 to the individual elements of date ranges.
+
+========================
+Changes in version 1.4.4
+========================
+
+- Fixes for placeholder labels.
+
+========================
+Changes in version 1.4.3
+========================
+
+- Amend parallel-last-to-first to take a list of variable names rather
+  than simply "true" as argument.
+
+========================
+Changes in version 1.4.2
+========================
+
+- In CSL-M mode only, rendering title with form="short" will first attempt
+  to abbreviate from external source, then (this is the difference) use the
+  value of title-short, if available, falling back to the full form.
+
+========================
 Changes in version 1.4.1
 ========================
 
