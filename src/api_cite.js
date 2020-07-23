@@ -811,8 +811,6 @@ CSL.Engine.prototype.processCitationCluster = function (citation, citationsPre, 
 
 CSL.Engine.prototype.process_CitationCluster = function (sortedItems, citation) {
     var str = "";
-    // Parallels must be evaluated in the calling function
-    //this.parallel.StartCitation(sortedItems);
     if (citation && citation.properties && citation.properties.mode === "composite") {
         citation.properties.mode = "author-only";
         var firstChunk = CSL.getCitationCluster.call(this, sortedItems, citation);
@@ -881,9 +879,6 @@ CSL.Engine.prototype.makeCitationCluster = function (rawList) {
         inputList.sort(this.citation.srt.compareCompositeKeys);
     }
     this.tmp.citation_errors = [];
-    if (this.opt.parallel.enable) {
-        this.parallel.StartCitation(inputList);
-    }
     var str = CSL.getCitationCluster.call(this, inputList);
     return str;
 };
@@ -910,6 +905,7 @@ CSL.getAmbiguousCite = function (Item, disambig, visualForm, item) {
         parallel_first: flags.parallel_first,
         parallel_last_override: flags.parallel_last_override,
         parallel_delimiter_override: flags.parallel_delimiter_override,
+        parallel_delimiter_override_on_suppress: flags.parallel_delimiter_override_on_suppress,
         condition: flags.condition,
         force_suppress: flags.force_suppress,
         done_vars: flags.done_vars.slice()
@@ -1151,8 +1147,12 @@ CSL.getCitationCluster = function (inputList, citation) {
             inputList[0][1]["suppress-author"] = true;
         }
     }
+    if (this.opt.parallel.enable) {
+        this.parallel.StartCitation(inputList);
+    }
     for (pos = 0; pos < len; pos += 1) {
 
+        // Also for parallels only
         this.tmp.cite_index = pos;
 
         Item = inputList[pos][0];
@@ -1462,6 +1462,15 @@ CSL.getCite = function (Item, item, prevItemID, blockShadowNumberReset) {
 
 
 CSL.citeStart = function (Item, item, blockShadowNumberReset) {
+    this.tmp.lang_array = [];
+    if (Item.language) {
+        // Guard against garbage locales in user input
+        var m = Item.language.match(/^([a-zA-Z]+).*/);
+        if (m) {
+            this.tmp.lang_array.push(m[1].toLowerCase());
+        }
+    }
+    this.tmp.lang_array.push(this.opt.lang);
     if (!blockShadowNumberReset) {
         this.tmp.shadow_numbers = {};
     }

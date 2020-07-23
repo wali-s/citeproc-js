@@ -1,3 +1,77 @@
+=========================
+Changes in version 1.4.12
+=========================
+
+- Do not attempt split of container-title unless affirmatively
+  configured to do so. For it to work properly, an override field must
+  be available in the client on any item for which it is
+  invoked. Otherwise, an abbreviated container title with a period
+  mid-string will be truncated at the first period. Some items that
+  deliver container-title to the processor in ZOtero do not have an
+  override field ("Journal Abbrev.""), so disabling the split for
+  now. To enable, set:
+
+  citeproc.opt.development_extensions.split_container_title = true;
+
+  ... or before building the processor, with:
+
+  sys.split_container_title = true;
+
+=========================
+Changes in version 1.4.11
+=========================
+
+- Fix in-browser failures of toLocaleUpperCase and toLocaleLowerCase.
+
+  Details: https://github.com/Juris-M/citeproc-js/issues/142
+
+- Fix another potential cause of processor crash with parallels on
+  some refresh operations.
+
+=========================
+Changes in version 1.4.10
+=========================
+
+- Fix a serious bug affecting Jurism. A parallel-citation counter was not
+  reset when citations were updated implicitly by processCitationCluster,
+  triggering a processor crash. (This bug does not affect Zotero, nor other
+  systems that do not exercise the parallel citation extensions.)
+
+========================
+Changes in version 1.4.9
+========================
+
+- Give priority to latest node, not parent node, for parallel-delimiter-override.
+
+- Implement parallel-delimiter-override-on-suppress for special cases.
+
+========================
+Changes in version 1.4.8
+========================
+
+- Fix bug in labels when "page" label used with "page-first" variable.
+
+========================
+Changes in version 1.4.7
+========================
+
+- Avoid crash when text is substituted for a name with bibliography substitution
+  rule "partial-each".
+
+  Addresses https://github.com/Juris-M/citeproc-js/issues/140
+
+- Support locale-specific text-casing.
+
+  Addresses https://forums.zotero.org/discussion/83567/uppercase-letter-problem-in-turkish
+
+========================
+Changes in version 1.4.6
+========================
+
+- Suppress locator if author-only
+
+  https://github.com/Juris-M/citeproc-js/issues/131#issuecomment-652457239
+
 ========================
 Changes in version 1.4.5
 ========================

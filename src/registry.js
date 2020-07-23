@@ -286,9 +286,11 @@ CSL.Registry.prototype.dodeletes = function (myhash) {
             if (this.registry[key].siblings) {
                 if (this.registry[key].siblings.length == 1) {
                     var loneSiblingID = this.registry[key].siblings[0];
-                    this.registry[loneSiblingID].master = true;
-                    this.registry[loneSiblingID].siblings.pop();
-                    this.registry[loneSiblingID].parallel = false;
+                    if (this.registry[loneSiblingID].siblings) {
+                        this.registry[loneSiblingID].siblings.pop();
+                        this.registry[loneSiblingID].master = true;
+                        this.registry[loneSiblingID].parallel = false;
+                    }
                 } else if (this.registry[key].siblings.length > 1) {
                     var removeIDs = [key];
                     if (this.registry[key].master) {
@@ -670,7 +672,7 @@ CSL.Registry.prototype.sorttokens = function (nosort) {
  */
 CSL.Registry.Comparifier = function (state, keyset) {
     var sort_directions, len, pos, compareKeys;
-    var sortCompare = CSL.getSortCompare(state.opt["default-locale-sort"]);
+    var sortCompare = CSL.getSortCompare.call(state, state.opt["default-locale-sort"]);
     sort_directions = state[keyset].opt.sort_directions;
     this.compareKeys = function (a, b) {
         len = a.sortkeys ? a.sortkeys.length : 0;
