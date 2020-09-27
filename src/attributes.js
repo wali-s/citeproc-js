@@ -115,13 +115,13 @@ CSL.Attributes["@position"] = function (state, arg) {
     state.opt.update_mode = CSL.POSITION;
     var trypositions = arg.split(/\s+/);
     var testSubsequentNear = function (Item, item) {
-        if (item && item.position >= CSL.POSITION_SUBSEQUENT && item["near-note"]) {
+        if (item && CSL.POSITION_MAP[item.position] >= CSL.POSITION_MAP[CSL.POSITION_SUBSEQUENT] && item["near-note"]) {
             return true;
         }
         return false;
     };
     var testSubsequentNotNear = function (Item, item) {
-        if (item && item.position == CSL.POSITION_SUBSEQUENT && !item["near-note"]) {
+        if (item && CSL.POSITION_MAP[item.position] == CSL.POSITION_MAP[CSL.POSITION_SUBSEQUENT] && !item["near-note"]) {
             return true;
         }
         return false;
@@ -137,7 +137,7 @@ CSL.Attributes["@position"] = function (state, arg) {
             if (item && typeof item.position === "number") {
                 if (item.position === 0 && tryposition === 0) {
                     return true;
-                } else if (tryposition > 0 && item.position >= tryposition) {
+                } else if (tryposition > 0 && CSL.POSITION_MAP[item.position] >= CSL.POSITION_MAP[tryposition]) {
                     return true;
                 }
             } else if (tryposition === 0) {
@@ -150,6 +150,8 @@ CSL.Attributes["@position"] = function (state, arg) {
         var tryposition = trypositions[i];
         if (tryposition === "first") {
             tryposition = CSL.POSITION_FIRST;
+        } else if (tryposition === "container-subsequent") {
+            tryposition = CSL.POSITION_CONTAINER_SUBSEQUENT;
         } else if (tryposition === "subsequent") {
             tryposition = CSL.POSITION_SUBSEQUENT;
         } else if (tryposition === "ibid") {
@@ -326,6 +328,11 @@ CSL.Attributes["@variable"] = function (state, arg) {
                         output = true;
                     }
                     break;
+                } else if ("first-container-reference-note-number" === variable) {
+                    if (item && item["first-container-reference-note-number"]) {
+                        output = true;
+                    }
+                    break;
                 } else if ("hereinafter" === variable) {
                     if (state.transform.abbrevs["default"].hereinafter[Item.id]
                         && state.sys.getAbbreviation
@@ -380,7 +387,7 @@ CSL.Attributes["@variable"] = function (state, arg) {
         var maketest = function (variable) {
             return function(Item,item){
                 var myitem = Item;
-                if (item && ["locator", "locator-extra", "first-reference-note-number", "locator-date"].indexOf(variable) > -1) {
+                if (item && ["locator", "locator-extra", "first-reference-note-number", "first-container-reference-note-number", "locator-date"].indexOf(variable) > -1) {
                     myitem = item;
                 }
                 // We don't run loadAbbreviation() here; it is run by the application-supplied
@@ -816,6 +823,36 @@ CSL.Attributes["@court-class"] = function (state, arg) {
     }
 };
 
+CSL.Attributes["@container-item-multiple"] = function (state, arg) {
+    if (!this.tests) {this.tests = []; };
+	var retval = "true" === arg ? true : false;
+    var maketest = function (retval) {
+        return function(Item) {
+            if (!state.tmp.container_item_count[Item.container_id]) {
+                return !retval;
+            } else if (state.tmp.container_item_count[Item.container_id] > 1) {
+                return retval;
+            }
+            return !retval;
+        };
+    };
+    this.tests.push(maketest(retval));
+};
+
+CSL.Attributes["@container-subsequent-in-bibliography"] = function (state, arg) {
+    if (!this.tests) {this.tests = []; };
+	var retval = "true" === arg ? true : false;
+    var maketest = function (retval) {
+        return function(Item) {
+            if (state.tmp.container_item_pos[Item.container_id] > 1) {
+                return retval;
+            }
+            return !retval;
+        };
+    };
+    this.tests.push(maketest(retval));
+};
+
 CSL.Attributes["@has-subunit"] = function (state, arg) {
     if (!this.tests) {this.tests = []; };
     var maketest = function(namevar) {
@@ -835,6 +872,27 @@ CSL.Attributes["@has-subunit"] = function (state, arg) {
         };
     };
     this.tests.push(maketest(arg));
+}
+
+CSL.Attributes["@disable-duplicate-year-suppression"] = function (state, arg) {
+	state.opt.disable_duplicate_year_suppression = arg.split(/\s+/);
+}
+
+CSL.Attributes["@consolidate-containers"] = function (state, arg) {
+    CSL.Attributes["@track-container-items"](state, arg);
+    var args = arg.split(/\s+/);
+    state.bibliography.opt.consolidate_containers = args;
+}
+
+CSL.Attributes["@track-container-items"] = function (state, arg) {
+    var args = arg.split(/\s+/);
+    if (!state.bibliography.opt.track_container_items) {
+        state.bibliography.opt.track_container_items = [];
+    }
+    if (!state.bibliography.opt.consolidate_containers) {
+        state.bibliography.opt.consolidate_containers = [];
+    }
+    state.bibliography.opt.track_container_items = state.bibliography.opt.track_container_items.concat(args);
 }
 
 // These are not evaluated as conditions immediately: they only
@@ -886,7 +944,19 @@ CSL.Attributes["@parallel-delimiter-override"] = function (state, arg) {
 CSL.Attributes["@parallel-delimiter-override-on-suppress"] = function (state, arg) {
     this.strings.set_parallel_delimiter_override_on_suppress = arg;
 };
-
+CSL.Attributes["@no-repeat"] = function (state, arg) {
+    state.opt.parallel.enable = true;
+    var vars = arg.split(/\s+/);
+    if (!state.opt.track_repeat) {
+        state.opt.track_repeat = {};
+    }
+    this.non_parallel = {};
+    for (var i in vars) {
+        var v = vars[i];
+        this.non_parallel[v] = true;
+        state.opt.track_repeat[v] = true;
+    }
+};
 
 CSL.Attributes["@require"] = function (state, arg) {
     this.strings.require = arg;

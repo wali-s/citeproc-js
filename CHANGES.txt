@@ -1,4 +1,91 @@
 =========================
+Changes in version 1.4.23
+=========================
+
+- Bugfixes to 1.4.22
+
+=========================
+Changes in version 1.4.22
+=========================
+
+- REVERT changes to internal CSL.POSITION_* values. This and
+  subsequent versions are backward-compatible with existing systems
+  and documents (!).
+
+- Fine tuning of container consolidation tools
+  - Assure position literals are backward compatible with existing documents.
+  - Rename container-item-pos to container-item-multiple with boolean argument.
+  - Add container-subsequent-in-bibliography attribute to allow shrinkage in following items.
+
+=========================
+Changes in version 1.4.21
+=========================
+
+- Replace strict-subsequent with position test container-subsequent
+
+  NOTE: This release changes the internal values of the CSL.POSITION_*
+        flags. Code that sets these values literally can be expected to
+        break.
+
+=========================
+Changes in version 1.4.20
+=========================
+
+- Implement first-container-reference-note-number
+
+- Fix bugs in first-reference-note-number
+
+=========================
+Changes in version 1.4.19
+=========================
+
+Numerous changes to consolidation and position code
+    - Allow a selection of types of consolidation, rather than binding to chapter.
+    - Rename recently added chapter attributes to suit the above.
+    - Add track-container-items attribute.
+    - Change abbrev category of archive from collection-title to container-title
+      (fixes a failing IndigoBook test)
+
+=========================
+Changes in version 1.4.18
+=========================
+
+- Add disable-duplicate-year-suppression style option.
+  https://github.com/Juris-M/citeproc-js/issues/146
+
+- Implement strict-subsequent to enable two levels of the "subsequent"
+  position, for use in chapter items.
+  https://github.com/Juris-M/zotero/issues/76
+
+- Consolidate chapter and legislation items.
+
+- Implement chapter-item-consolidation attribute on cs:bibliography.
+
+- Implement chapter-count condition attribute for use in cs:bibliography.
+
+
+=========================
+Changes in version 1.4.17
+=========================
+
+- Examine prefixes on cs:number and cs:group in comma-safe evaluation.
+
+=========================
+Changes in version 1.4.16
+=========================
+
+- Implement no-repeat attribute on cs:group, to suppress
+  output on non-parallel items only, when designated variables
+  match on predecessor.
+
+=========================
+Changes in version 1.4.15
+=========================
+
+- Print "no printed reference" warning only if the first citation
+  in a series renders nothing.
+
+=========================
 Changes in version 1.4.13
 =========================
 

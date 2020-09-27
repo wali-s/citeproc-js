@@ -167,6 +167,34 @@ CSL.getBibliographyEntries = function (bibsection) {
 
     var processed_item_ids = [];
 
+    var consolidatedIDs = {};
+    this.tmp.container_item_count = {};
+    input = input.filter(o => {
+        var ret = o;
+        if (o.legislation_id) {
+            if (consolidatedIDs[o.legislation_id]) {
+                ret = false;
+            } else {
+                consolidatedIDs[o.legislation_id] = true;
+            }
+        } else if (o.container_id) {
+            if (!this.tmp.container_item_count[o.container_id]) {
+                this.tmp.container_item_count[o.container_id] = 0;
+            }
+            this.tmp.container_item_count[o.container_id]++;
+            if (this.bibliography.opt.consolidate_containers.indexOf(o.type) > -1) {
+                if (consolidatedIDs[o.container_id]) {
+                    ret = false;
+                } else {
+                    consolidatedIDs[o.container_id] = true;
+                }
+            }
+        }
+        return ret;
+    });
+
+    this.tmp.container_item_pos = {};
+
     for (i = 0, ilen = input.length; i < ilen; i += 1) {
         
         // For paged returns
@@ -252,6 +280,14 @@ CSL.getBibliographyEntries = function (bibsection) {
         if (debug) {
             CSL.debug("BIB: " + item.id);
         }
+
+        if (item.container_id) {
+            if (!this.tmp.container_item_pos[item.container_id]) {
+                this.tmp.container_item_pos[item.container_id] = 0;
+            }
+            this.tmp.container_item_pos[item.container_id]++;
+        }
+        
         //SNIP-END
         bib_entry = new CSL.Token("group", CSL.START);
         bib_entry.decorations = [["@bibliography", "entry"]].concat(this.bibliography.opt.layout_decorations);
@@ -275,11 +311,20 @@ CSL.getBibliographyEntries = function (bibsection) {
             }
             // Adjust parameters
             this.parallel.StartCitation(sortedItems);
-            this.output.queue[0].strings.delimiter = ", ";
+            if (this.registry.registry[item.id].parallel_delimiter_override) {
+                this.output.queue[0].strings.delimiter = this.registry.registry[item.id].parallel_delimiter_override;
+            } else {
+                this.output.queue[0].strings.delimiter = ", ";
+            }
             this.tmp.term_predecessor = false;
             this.tmp.cite_index = 0;
             // Run cites
             for (j = 0, jlen = sortedItems.length; j < jlen; j += 1) {
+                if (j < (sortedItems.length - 1)) {
+                    this.tmp.parallel_and_not_last = true;
+                } else {
+                    delete this.tmp.parallel_and_not_last;
+                }
                 entry_item_ids.push("" + CSL.getCite.call(this, sortedItems[j][0], sortedItems[j][1]));
                 this.tmp.cite_index++;
                 skips[sortedItems[j][0].id] = true;

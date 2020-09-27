@@ -35,7 +35,7 @@
 
 var CSL = {
 
-    PROCESSOR_VERSION: "1.4.13",
+    PROCESSOR_VERSION: "1.4.23",
 
     error: function(str) { // default error function
         if ("undefined" === typeof Error) {
@@ -322,7 +322,7 @@ var CSL = {
         "country": "place",
         "number": "number",
         "place": "place",
-        "archive": "collection-title",
+        "archive": "container-title",
         "title-short": "title",
         "genre": "title",
         "event": "title",
@@ -565,12 +565,21 @@ var CSL = {
     POSITION_SUBSEQUENT: 1,
     POSITION_IBID: 2,
     POSITION_IBID_WITH_LOCATOR: 3,
+    POSITION_CONTAINER_SUBSEQUENT: 4,
 
+    POSITION_MAP: {
+        "0": 0,
+        "4": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4
+    },
+    
     POSITION_TEST_VARS: ["position", "first-reference-note-number", "near-note"],
 
     AREAS: ["citation", "citation_sort", "bibliography", "bibliography_sort", "intext"],
 
-    CITE_FIELDS: ["first-reference-note-number", "locator", "locator-extra"],
+    CITE_FIELDS: ["first-reference-note-number", "first-container-reference-note-number", "locator", "locator-extra"],
 
     SWAPPING_PUNCTUATION: [".", "!", "?", ":", ","],
     TERMINAL_PUNCTUATION: [":", ".", ";", "!", "?", " "],
@@ -1215,7 +1224,7 @@ var CSL = {
 
     UPDATE_GROUP_CONTEXT_CONDITION: function (state, termtxt, valueTerm) {
         if (state.tmp.group_context.tip.condition) {
-            if (state.tmp.group_context.tip.condition.test) {
+            if (!state.tmp.group_context.tip.condition.termtxt) {
                 state.tmp.group_context.tip.condition.termtxt = termtxt;
                 state.tmp.group_context.tip.condition.valueTerm = valueTerm;
             }

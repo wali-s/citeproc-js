@@ -30,6 +30,11 @@ CSL.Node.group = {
                 }
                 
                 if (this.realGroup) {
+                    
+                    if (state.tmp.group_context.tip.condition) {
+                        CSL.UPDATE_GROUP_CONTEXT_CONDITION(state, this.strings.prefix);
+                    }
+                    
                     var condition = false;
                     var force_suppress = false;
 
@@ -79,6 +84,14 @@ CSL.Node.group = {
                         force_suppress: force_suppress,
                         done_vars: state.tmp.group_context.tip.done_vars.slice()
                     };
+                    if(this.non_parallel) {
+                        var non_parallel = state.tmp.group_context.tip.non_parallel;
+                        if (!non_parallel) {
+                            non_parallel = {};
+                        }
+                        Object.assign(non_parallel, this.non_parallel);
+                        context.non_parallel = non_parallel;
+                    }
                     if(this.parallel_first) {
                         var parallel_first = state.tmp.group_context.tip.parallel_first;
                         if (!parallel_first) {
@@ -258,6 +271,9 @@ CSL.Node.group = {
                     var flags = state.tmp.group_context.pop();
                     if (flags.parallel_delimiter_override) {
                         state.tmp.group_context.tip.parallel_delimiter_override = flags.parallel_delimiter_override;
+                        if (!state.tmp.just_looking && state.registry.registry[Item.id].master) {
+                            state.registry.registry[Item.id].parallel_delimiter_override = flags.parallel_delimiter_override;
+                        }
                     }
                     if (flags.parallel_delimiter_override_on_suppress) {
                         state.tmp.group_context.tip.parallel_delimiter_override_on_suppress = flags.parallel_delimiter_override_on_suppress;
@@ -284,13 +300,15 @@ CSL.Node.group = {
                     if (state.tmp.group_context.tip.condition) {
                         state.tmp.group_context.tip.force_suppress = flags.force_suppress;
                     }
+                            
                     if (!flags.force_suppress && (flags.variable_success || (flags.term_intended && !flags.variable_attempt))) {
                         if (!this.isJurisLocatorLabel) {
                             state.tmp.group_context.tip.variable_success = true;
                         }
                         var blobs = state.output.current.value().blobs;
                         var pos = state.output.current.value().blobs.length - 1;
-                        if (!state.tmp.just_looking && (flags.parallel_last || flags.parallel_first || flags.parallel_delimiter_override || flags.parallel_delimiter_override_on_suppress)) {
+
+                        if (!state.tmp.just_looking && (flags.non_parallel || flags.parallel_last || flags.parallel_first || flags.parallel_delimiter_override || flags.parallel_delimiter_override_on_suppress)) {
                             // flags.parallel_last
                             // flags.parallel_first
 
@@ -301,11 +319,12 @@ CSL.Node.group = {
                                     blobs.pop();
                                 }
                             }
-                            if (state.tmp.cite_index > 0 && (hasRepeat || (!flags.parallel_first && !flags.parallel_last))) {
+                            if (state.tmp.cite_index > 0 && (hasRepeat || (!flags.parallel_first && !flags.parallel_last && !flags.non_parallel))) {
                                 //state.sys.print(`${state.tmp.cite_index} ${JSON.stringify(state.tmp.suppress_repeats, null, 2)}`)
-                                if (hasRepeat && flags.parallel_delimiter_override_on_suppress && state.tmp.suppress_repeats[state.tmp.cite_index-1].SIBLING) {
+                                var info = state.tmp.suppress_repeats[state.tmp.cite_index-1];
+                                if (hasRepeat && flags.parallel_delimiter_override_on_suppress && (info.SIBLING || info.ORPHAN)) {
                                     state.output.queue.slice(-1)[0].parallel_delimiter = flags.parallel_delimiter_override_on_suppress;
-                                } else if (flags.parallel_delimiter_override && state.tmp.suppress_repeats[state.tmp.cite_index-1].SIBLING) {
+                                } else if (flags.parallel_delimiter_override && info.SIBLING) {
                                     state.output.queue.slice(-1)[0].parallel_delimiter = flags.parallel_delimiter_override;
                                 }
                             }

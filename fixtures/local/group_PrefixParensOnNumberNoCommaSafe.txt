@@ -5,16 +5,9 @@ citation
 
 
 >>===== RESULT =====>>
->>[0] Title One, (number), section 12 verse 99
+>>[0] Book Title 1 (123)
 <<===== RESULT =====<<
 
->>===== OPTIONZ =====>>
-{
-   "consolidate_legal_items":false,
-   "clobber_locator_if_no_statute_section":false,
-   "handle_parallel_articles": false
-}
-<<===== OPTIONZ =====<<
 
 
 >>===== CITATIONS =====>>
@@ -25,8 +18,8 @@ citation
             "citationItems": [
                 {
                     "id": "ITEM-1", 
-                    "label": "verse", 
-                    "locator": "99"
+                    "label": "page", 
+                    "locator": "123"
                 }
             ], 
             "properties": {
@@ -39,12 +32,12 @@ citation
 ]
 <<===== CITATIONS =====<<
 
+
 >>===== CSL =====>>
 <style 
       xmlns="http://purl.org/net/xbiblio/csl"
       class="note"
-      version="1.1mlz1"
-      demote-non-dropping-particle="display-and-sort">
+      version="1.1mlz1">
   <info>
     <title>Test fixture</title>
     <id>http://citationstyles.org/tests/fixture</id>
@@ -54,18 +47,20 @@ citation
     <updated>2014-04-30T13:19:38+00:00</updated>
     <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
   </info>
+  <macro name="parens-locator">
+    <number variable="locator" prefix="(" suffix=")"/>
+  </macro>
   <citation>
     <layout>
-      <group delimiter=", ">
-        <text variable="title"/>
-        <choose>
-          <if is-numeric="locator">
-            <text value="(number)"/>
-          </if>
-        </choose>
-        <group delimiter=" ">
-          <label variable="locator" form="long"/>
-          <number variable="locator"/>
+      <group delimiter=" ">
+        <group delimiter=", ">
+          <text variable="title"/>
+          <group require="comma-safe">
+            <text macro="parens-locator"/>
+          </group>
+        </group>
+        <group reject="comma-safe">
+          <text macro="parens-locator"/>
         </group>
       </group>
     </layout>
@@ -76,11 +71,10 @@ citation
 
 >>===== INPUT =====>>
 [
-	{
-		"id": "ITEM-1",
-		"type": "bill",
-		"title": "Title One",
-		"section": "12"
-	}
+    {
+        "id": "ITEM-1", 
+        "title": "Book Title 1",
+        "type": "book"
+    }
 ]
 <<===== INPUT =====<<
