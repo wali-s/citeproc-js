@@ -504,6 +504,28 @@ CSL.Attributes["@jurisdiction"] = function (state, arg) {
     this.tests.push(maketests(tryjurisdictions));
 };
 
+CSL.Attributes["@country"] = function (state, arg) {
+    if (!this.tests) {this.tests = []; };
+    var trycountries = arg.split(/\s+/);
+    
+    // This forces a match=any method, similar to @type
+    var maketests = function (trycountries) {
+        return function(Item) {
+            if (!Item.country) {
+                return false;
+            }
+            var country = Item.country;
+            for (var i=0,ilen=trycountries.length;i<ilen;i++) {
+                if (country === trycountries[i]) {
+                    return true;
+                }
+            }
+            return false;
+        };
+    };
+    this.tests.push(maketests(trycountries));
+};
+
 CSL.Attributes["@context"] = function (state, arg) {
     if (!this.tests) {this.tests = []; };
     var func = function () {
@@ -823,7 +845,7 @@ CSL.Attributes["@court-class"] = function (state, arg) {
     }
 };
 
-CSL.Attributes["@container-item-multiple"] = function (state, arg) {
+CSL.Attributes["@container-multiple"] = function (state, arg) {
     if (!this.tests) {this.tests = []; };
 	var retval = "true" === arg ? true : false;
     var maketest = function (retval) {
@@ -839,7 +861,7 @@ CSL.Attributes["@container-item-multiple"] = function (state, arg) {
     this.tests.push(maketest(retval));
 };
 
-CSL.Attributes["@container-subsequent-in-bibliography"] = function (state, arg) {
+CSL.Attributes["@container-subsequent"] = function (state, arg) {
     if (!this.tests) {this.tests = []; };
 	var retval = "true" === arg ? true : false;
     var maketest = function (retval) {
@@ -879,12 +901,12 @@ CSL.Attributes["@disable-duplicate-year-suppression"] = function (state, arg) {
 }
 
 CSL.Attributes["@consolidate-containers"] = function (state, arg) {
-    CSL.Attributes["@track-container-items"](state, arg);
+    CSL.Attributes["@track-containers"](state, arg);
     var args = arg.split(/\s+/);
     state.bibliography.opt.consolidate_containers = args;
 }
 
-CSL.Attributes["@track-container-items"] = function (state, arg) {
+CSL.Attributes["@track-containers"] = function (state, arg) {
     var args = arg.split(/\s+/);
     if (!state.bibliography.opt.track_container_items) {
         state.bibliography.opt.track_container_items = [];
@@ -930,14 +952,6 @@ CSL.Attributes["@parallel-last-to-first"] = function (state, arg) {
         this.parallel_last_to_first[vars[i]] = true;
     }
 };
-CSL.Attributes["@parallel-last-override"] = function (state, arg) {
-    var vars = arg.split(/\s+/);
-    this.parallel_last_override = {};
-    for (var i in vars) {
-        var v = vars[i];
-        this.parallel_last_override[v] = true;
-    }
-};
 CSL.Attributes["@parallel-delimiter-override"] = function (state, arg) {
     this.strings.set_parallel_delimiter_override = arg;
 };
@@ -959,6 +973,7 @@ CSL.Attributes["@no-repeat"] = function (state, arg) {
 };
 
 CSL.Attributes["@require"] = function (state, arg) {
+    state.opt.use_context_condition = true;
     this.strings.require = arg;
 
     // Introduced to constrain rendering of the group with a
@@ -972,6 +987,7 @@ CSL.Attributes["@require"] = function (state, arg) {
 };
 
 CSL.Attributes["@reject"] = function (state, arg) {
+    state.opt.use_context_condition = true;
     this.strings.reject = arg;
 
     // Introduced to constrain rendering of the group with a

@@ -1,6 +1,16 @@
->>== MODE ==>>
+>>===== MODE =====>>
 citation
-<<== MODE ==<<
+<<===== MODE =====<<
+
+
+
+>>===== RESULT =====>>
+..[0] 100, 123
+..[1] abc 123
+..[2] 300 def
+>>[3] abc def
+<<===== RESULT =====<<
+
 
 >>===== CITATIONS =====>>
 [
@@ -9,7 +19,8 @@ citation
             "citationID": "CITATION-1", 
             "citationItems": [
                 {
-                    "id": "ITEM-1"
+                    "id": "ITEM-1", 
+                    "locator": "123"
                 }
             ], 
             "properties": {
@@ -24,10 +35,8 @@ citation
             "citationID": "CITATION-2", 
             "citationItems": [
                 {
-                    "id": "ITEM-2"
-                },
-                {
-                    "id": "ITEM-2"
+                    "id": "ITEM-2", 
+                    "locator": "123"
                 }
             ], 
             "properties": {
@@ -47,7 +56,8 @@ citation
             "citationID": "CITATION-3", 
             "citationItems": [
                 {
-                    "id": "ITEM-1"
+                    "id": "ITEM-3", 
+                    "locator": "def"
                 }
             ], 
             "properties": {
@@ -58,10 +68,39 @@ citation
             [
                 "CITATION-1", 
                 1
-            ],
+            ], 
             [
                 "CITATION-2", 
                 2
+            ]
+        ], 
+        []
+    ], 
+    [
+        {
+            "citationID": "CITATION-4", 
+            "citationItems": [
+                {
+                    "id": "ITEM-4", 
+                    "locator": "def"
+                }
+            ], 
+            "properties": {
+                "noteIndex": 4
+            }
+        }, 
+        [
+            [
+                "CITATION-1", 
+                1
+            ], 
+            [
+                "CITATION-2", 
+                2
+            ], 
+            [
+                "CITATION-3", 
+                3
             ]
         ], 
         []
@@ -70,14 +109,11 @@ citation
 <<===== CITATIONS =====<<
 
 
->>== RESULT ==>>
-..[0] Able Article in Baker Book (2000)
-..[1] Charley Comment in Baker Book; ibid
->>[2] Able Article
-<<== RESULT ==<<
-
 >>===== CSL =====>>
-<style xmlns="http://purl.org/net/xbiblio/csl" class="note" version="1.1mlz1" track-containers="chapter">
+<style 
+      xmlns="http://purl.org/net/xbiblio/csl"
+      class="note"
+      version="1.1mlz1">
   <info>
     <title>Test fixture</title>
     <id>http://citationstyles.org/tests/fixture</id>
@@ -88,34 +124,16 @@ citation
     <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
   </info>
   <citation>
-    <layout delimiter="; ">
-      <choose>
-        <if position="ibid">
-          <text value="ibid"/>
-        </if>
-        <else-if position="subsequent">
-              <text variable="title"/>
-        </else-if>
-        <else-if position="container-subsequent">
-              <group delimiter=". ">
-                <group delimiter=" in ">
-                  <text variable="title"/>
-                  <text variable="container-title"/>
-                </group>
-              </group>
-        </else-if>
-        <else>
-          <group delimiter=" ">
-            <group delimiter=". ">
-              <group delimiter=" in ">
-                <text variable="title"/>
-                <text variable="container-title"/>
-              </group>
-            </group>
-            <date variable="issued" date-parts="year" form="text" prefix="(" suffix=")"/>
+    <layout>
+      <group delimiter=", ">
+        <group delimiter=" ">
+          <text variable="title"/>
+          <group reject="comma-safe-numbers-only">
+            <number variable="locator"/>
           </group>
-        </else>
-      </choose>
+        </group>
+        <number variable="locator"/>
+      </group>
     </layout>
   </citation>
 </style>
@@ -124,19 +142,25 @@ citation
 
 >>===== INPUT =====>>
 [
-   {
-      "id": "ITEM-1",
-      "type": "chapter",
-      "title": "Able Article",
-      "container-title": "Baker Book",
-      "issued": { "date-parts": [[2000]]}
-   },
-   {
-      "id": "ITEM-2",
-      "type": "chapter",
-      "title": "Charley Comment",
-      "container-title": "Baker Book",
-      "issued": { "date-parts": [[2000]]}
-   }
+    {
+        "id": "ITEM-1", 
+        "title": "100",
+        "type": "book"
+    },
+    {
+        "id": "ITEM-2", 
+        "title": "abc",
+        "type": "chapter"
+    },
+    {
+        "id": "ITEM-3", 
+        "title": "300",
+        "type": "article-journal"
+    },
+    {
+        "id": "ITEM-4", 
+        "title": "abc",
+        "type": "article-newspaper"
+    }
 ]
 <<===== INPUT =====<<

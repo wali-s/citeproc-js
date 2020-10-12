@@ -32,7 +32,7 @@ CSL.Node.group = {
                 if (this.realGroup) {
                     
                     if (state.tmp.group_context.tip.condition) {
-                        CSL.UPDATE_GROUP_CONTEXT_CONDITION(state, this.strings.prefix);
+                        CSL.UPDATE_GROUP_CONTEXT_CONDITION(state, this.strings.prefix, null, this);
                     }
                     
                     var condition = false;
@@ -266,6 +266,11 @@ CSL.Node.group = {
             
             // quashnonfields
             func = function (state, Item, item) {
+                if (!state.tmp.group_context.tip.condition) {
+                    if (state.output.current.tip.strings.suffix) {
+                        state.tmp.just_did_number = false;
+                    }
+                }
                 state.output.endTag();
                 if (this.realGroup) {
                     var flags = state.tmp.group_context.pop();
@@ -379,4 +384,3 @@ CSL.Node.group = {
         }
     }
 };
-

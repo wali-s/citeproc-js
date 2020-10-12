@@ -1,4 +1,117 @@
 =========================
+Changes in version 1.4.38
+=========================
+
+- Test primary of cs:text items with multilingual variants as in 1.4.37.
+
+=========================
+Changes in version 1.4.37
+=========================
+
+- Include cs:text prefix and variable in require/reject evaluation.
+  https://github.com/Juris-M/citeproc-js/pull/166
+
+=========================
+Changes in version 1.4.36
+=========================
+
+- Fix bug in consolidation code. Always insert to registry with Item.id.
+
+=========================
+Changes in version 1.4.35
+=========================
+
+- Add a "country" test, which unlike the "jurisdiction" test will be useful.
+
+=========================
+Changes in version 1.4.34
+=========================
+
+- Fix bug in name-delimiter as applied to literal ("single-field") names, by
+  removing the explicit delimiter from the implicit cs:institutions node created
+  by citeproc-js on style instantiation, and allowing delimiter inheritance to
+  take effect.
+
+=========================
+Changes in version 1.4.33
+=========================
+
+- Really fix comma-safe group bug this time.
+
+=========================
+Changes in version 1.4.32
+=========================
+
+- Fix comma-safe bug in direct application of suffix on cs:date
+
+- Recognize macro suffix in comma-safe evaluation
+  https://github.com/Juris-M/citeproc-js/issues/151#issuecomment-702022105
+
+=========================
+Changes in version 1.4.31
+=========================
+
+- Recognize suffix on cs:date for comma-safe evaluations.
+
+- Include leading particle in numeric value for comma-safe evaluation
+
+- Make comma-safe evaluation work when style token not passed as argument (bugfix)
+
+=========================
+Changes in version 1.4.30
+=========================
+
+- Make comma-safe* attributes work with dates
+
+=========================
+Changes in version 1.4.29
+=========================
+
+- Fix behavior of comma-safe-numbers-only
+
+- Fix an untested coding bug affecting numbers followed
+  by a non-number value within the scope of a
+  comma-safe-numbers-only group
+
+=========================
+Changes in version 1.4.28
+=========================
+
+- Fix inheritance of name-delimiter.
+
+=========================
+Changes in version 1.4.27
+=========================
+
+- Implement comma-safe-numbers-only reject/require mode.
+
+- Fix a bug in container consolidation
+
+=========================
+Changes in version 1.4.26
+=========================
+
+- Add the rn. short-code for randnummer (marginal number).
+  https://github.com/Juris-M/zotero/issues/82
+
+=========================
+Changes in version 1.4.25
+=========================
+
+- Use non-breaking-space join between particles and family name
+  everywhere if the locale is "fr", "ru", or "cs".
+  https://github.com/citation-style-language/schema/pull/333#issuecomment-671505987
+
+=========================
+Changes in version 1.4.24
+=========================
+
+- Final form of attributes for container consolidation:
+  - Rename track-container-items to track-containers
+  - Rename container-subsequent-in-bibliography to container-subsequent
+  - Rename container-item-multiple to container-multiple
+
+=========================
 Changes in version 1.4.23
 =========================
 
