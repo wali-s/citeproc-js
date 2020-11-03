@@ -132,7 +132,7 @@ CSL.Engine.prototype.processCitationCluster = function (citation, citationsPre, 
         }
         Item = this.retrieveItem("" + item.id);
         if (Item.id) {
-            this.transform.loadAbbreviation("default", "hereinafter", Item.id);
+            this.transform.loadAbbreviation("default", "hereinafter", Item.id, Item.language);
         }
         item = CSL.parseLocator.call(this, item);
         if (this.opt.development_extensions.consolidate_legal_items) {
@@ -1112,7 +1112,7 @@ CSL.getCitationCluster = function (inputList, citation) {
     //var use_layout_prefix = this.citation.opt.layout_prefix;
 
     var suppressTrailingPunctuation = false;
-    if (this.opt.xclass === "note" && this.citation.opt.suppressTrailingPunctuation) {
+    if (this.citation.opt.suppressTrailingPunctuation) {
         suppressTrailingPunctuation = true;
     }
     if (citationID) {

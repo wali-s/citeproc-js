@@ -59,7 +59,7 @@ Copyright (c) 2009-2019 Frank Bennett
 
 var CSL = {
 
-    PROCESSOR_VERSION: "1.4.38",
+    PROCESSOR_VERSION: "1.4.47",
 
     error: function(str) { // default error function
         if ("undefined" === typeof Error) {
@@ -342,6 +342,34 @@ var CSL = {
         this["title-phrase"] = {};
     },
 
+    getAbbrevsDomain: function (state, country, lang) {
+		var domain = null;
+        if (state.opt.availableAbbrevDomains && country && country !== "default") {
+	        var globalDomainPreference = state.locale[state.opt.lang].opts["jurisdiction-preference"];
+		    var itemDomainPreference = null;
+		    if (state.locale[lang]) {
+			    itemDomainPreference = state.locale[lang].opts["jurisdiction-preference"];
+		    }
+		    if (itemDomainPreference) {
+			    for (var j=itemDomainPreference.length-1; j > -1; j--) {
+				    if (state.opt.availableAbbrevDomains[country].indexOf(itemDomainPreference[j]) > -1) {
+					    domain = itemDomainPreference[j];
+					    break;
+				    }
+			    }
+		    }
+		    if (!domain && globalDomainPreference) {
+			    for (var j=globalDomainPreference.length-1; j > -1; j--) {
+				    if (state.opt.availableAbbrevDomains[country].indexOf(globalDomainPreference[j]) > -1) {
+					    domain = globalDomainPreference[j];
+					    break;
+				    }
+			    }
+		    }
+        }
+        return domain;
+    },
+    
     FIELD_CATEGORY_REMAP: {
         "title": "title",
         "container-title": "container-title",
@@ -1458,48 +1486,13 @@ var CSL = {
             // Okay. We have code for each of the novel modules in the
             // hierarchy. Load them all into the processor.
             for (var jurisdiction in res) {
-                var macroCount = 0;
-                state.juris[jurisdiction] = {};
-                var myXml = CSL.setupXml(res[jurisdiction]);
-                myXml.addMissingNameNodes(myXml.dataObj);
-                myXml.addInstitutionNodes(myXml.dataObj);
-                myXml.insertPublisherAndPlace(myXml.dataObj);
-                myXml.flagDateMacros(myXml.dataObj);
-                var myNodes = myXml.getNodesByName(myXml.dataObj, "law-module");
-                for (var i=0,ilen=myNodes.length;i<ilen;i++) {
-                    var myTypes = myXml.getAttributeValue(myNodes[i],"types");
-                    if (myTypes) {
-                        state.juris[jurisdiction].types = {};
-                        myTypes =  myTypes.split(/\s+/);
-                        for (var j=0,jlen=myTypes.length;j<jlen;j++) {
-                            state.juris[jurisdiction].types[myTypes[j]] = true;
-                        }
+                var fallback = state.loadStyleModule(jurisdiction, res[jurisdiction]);
+                if (fallback) {
+                    if (!res[fallback]) {
+                        Object.assign(res, state.retrieveAllStyleModules([fallback]));
+                        state.loadStyleModule(fallback, res[fallback], true);
                     }
                 }
-                
-                var lang = state.opt.lang ? state.opt.lang : state.opt["default-locale"][0];
-                CSL.SET_COURT_CLASSES(state, lang, myXml, myXml.dataObj);
-                
-                if (!state.juris[jurisdiction].types) {
-                    state.juris[jurisdiction].types = CSL.MODULE_TYPES;
-                }
-                var myNodes = myXml.getNodesByName(myXml.dataObj, "macro");
-                for (var i=0,ilen=myNodes.length;i<ilen;i++) {
-                    var myName = myXml.getAttributeValue(myNodes[i], "name");
-                    if (!CSL.MODULE_MACROS[myName]) {
-                        CSL.debug("CSL: skipping non-modular macro name \"" + myName + "\" in module context");
-                        continue;
-                    }
-                    macroCount++;
-                    state.juris[jurisdiction][myName] = [];
-                    // Must use the same XML parser for style and modules.
-                    state.buildTokenLists(myNodes[i], state.juris[jurisdiction][myName]);
-                    state.configureTokenList(state.juris[jurisdiction][myName]);
-                }
-                //if (macroCount < Object.keys(CSL.MODULE_MACROS).length) {
-                //    var missing = [];
-                //    throw "CSL ERROR: Incomplete jurisdiction style module for: " + jurisdiction;
-                //}
             }
         }
         if (state.opt.parallel.enable) {
@@ -1553,8 +1546,7 @@ CSL.XmlJSON = function (dataObj) {
         name:"institution",
         attrs:{
             "institution-parts":"long",
-            "substitute-use-first":"1",
-            "use-last":"1"
+            "delimiter":", "
         },
         children:[
             {
@@ -4390,11 +4382,11 @@ CSL.Engine.prototype.retrieveItem = function (id) {
             noHints = true;
         }
         if (this.sys.normalizeAbbrevsKey) {
-            normalizedKey = this.sys.normalizeAbbrevsKey(Item.title);
+             normalizedKey = this.sys.normalizeAbbrevsKey("title", Item.title);
         } else {
             normalizedKey = Item.title;
         }
-        var jurisdiction = this.transform.loadAbbreviation(Item.jurisdiction, "title", normalizedKey, Item.type);
+        var jurisdiction = this.transform.loadAbbreviation(Item.jurisdiction, "title", normalizedKey, Item.language);
         if (this.transform.abbrevs[jurisdiction].title) {
             if (this.transform.abbrevs[jurisdiction].title[normalizedKey]) {
                 Item["title-short"] = this.transform.abbrevs[jurisdiction].title[normalizedKey];
@@ -4410,7 +4402,7 @@ CSL.Engine.prototype.retrieveItem = function (id) {
         } else {
             normalizedKey = Item["container-title"];
         }
-        var jurisdiction = this.transform.loadAbbreviation(Item.jurisdiction, "container-title", normalizedKey);
+        var jurisdiction = this.transform.loadAbbreviation(Item.jurisdiction, "container-title", normalizedKey, Item.language);
         if (this.transform.abbrevs[jurisdiction]["container-title"]) {
             if (this.transform.abbrevs[jurisdiction]["container-title"][normalizedKey]) {
                 Item["container-title-short"] = this.transform.abbrevs[jurisdiction]["container-title"][normalizedKey];
@@ -6462,6 +6454,8 @@ CSL.Engine.Opt = function () {
     this.disable_duplicate_year_suppression = [];
     this.use_context_condition = false;
 
+    this.jurisdiction_fallbacks = {};
+
     this.development_extensions = {};
     this.development_extensions.field_hack = true;
     this.development_extensions.allow_field_hack_date_override = true;
@@ -6491,6 +6485,7 @@ CSL.Engine.Opt = function () {
     this.development_extensions.implicit_short_title = false;
     this.development_extensions.force_title_abbrev_fallback = false;
     this.development_extensions.split_container_title = false;
+    this.development_extensions.legacy_institution_name_ordering = false;
 };
 
 CSL.Engine.Tmp = function () {
@@ -7034,7 +7029,7 @@ CSL.Engine.prototype.processCitationCluster = function (citation, citationsPre, 
         }
         Item = this.retrieveItem("" + item.id);
         if (Item.id) {
-            this.transform.loadAbbreviation("default", "hereinafter", Item.id);
+            this.transform.loadAbbreviation("default", "hereinafter", Item.id, Item.language);
         }
         item = CSL.parseLocator.call(this, item);
         if (this.opt.development_extensions.consolidate_legal_items) {
@@ -7349,7 +7344,7 @@ CSL.Engine.prototype.processCitationCluster = function (citation, citationsPre, 
                     item[1]["near-note"] = false;
                     if (this.registry.citationreg.citationsByItemId[item_id]) {
                         if (this.opt.xclass === 'note' && this.opt.has_disambiguate) {
-                            var oldCount = this.registry.registry[first_id]["citation-count"];
+                            var oldCount = this.registry.registry[item[0].id]["citation-count"];
                             var newCount = this.registry.citationreg.citationsByItemId[item_id].length;
                             this.registry.registry[item[0].id]["citation-count"] = this.registry.citationreg.citationsByItemId[item_id].length;
                             if ("number" === typeof oldCount) {
@@ -8014,7 +8009,7 @@ CSL.getCitationCluster = function (inputList, citation) {
     //var use_layout_prefix = this.citation.opt.layout_prefix;
 
     var suppressTrailingPunctuation = false;
-    if (this.opt.xclass === "note" && this.citation.opt.suppressTrailingPunctuation) {
+    if (this.citation.opt.suppressTrailingPunctuation) {
         suppressTrailingPunctuation = true;
     }
     if (citationID) {
@@ -9396,14 +9391,33 @@ CSL.Engine.prototype.localeSet = function (myxml, lang_in, lang_out) {
         // Xml: get a list of all "locale" nodes
         //
         nodes = myxml.getNodesByName(myxml.dataObj, "locale");
+        var foundLocale = false;
         for (pos = 0, len = myxml.numberofnodes(nodes); pos < len; pos += 1) {
             blob = nodes[pos];
             //
             // Xml: get locale xml:lang
             //
-            if (myxml.getAttributeValue(blob, 'lang', 'xml') === lang_in) {
+            // Iterate over all locales, but for non-matching nodes,
+            // we set jurisdiction_preference only (processing of the
+            // chosen one will process the attribute there,
+            // separately.
+            if (!foundLocale && myxml.getAttributeValue(blob, 'lang', 'xml') === lang_in) {
                 locale = blob;
-                break;
+                foundLocale = true;
+            } else {
+                var lang = myxml.getAttributeValue(blob, 'lang', 'xml');
+                var style_options = myxml.getNodesByName(blob, 'style-options');
+                if (lang && style_options && style_options.length) {
+                    var jurispref = myxml.getAttributeValue(style_options[0], 'jurisdiction-preference');
+                    if (jurispref) {
+                        if (!this.locale[lang]) {
+                            this.locale[lang] = {
+                                opts: {}
+                            };
+                        }
+                        this.locale[lang].opts["jurisdiction-preference"] = jurispref.split(/\s+/);
+                    }
+                }
             }
         }
     }
@@ -12071,6 +12085,9 @@ CSL.NameOutput.prototype.outputNames = function () {
     // set on element_trace.
     // Need to rescue the value for collapse comparison.
     var namesToken = CSL.Util.cloneToken(this.names);
+    if (this.state.tmp.group_context.tip.condition) {
+        CSL.UPDATE_GROUP_CONTEXT_CONDITION(this.state, this.names.strings.prefix, null, this.names);
+    }
     this.state.output.append(blob, namesToken);
     if (this.state.tmp.term_predecessor_name) {
         this.state.tmp.term_predecessor = true;
@@ -12123,7 +12140,10 @@ CSL.NameOutput.prototype.outputNames = function () {
             }
             author_title = author_title.join(", ");
             if (author_title && this.state.sys.getAbbreviation) {
-                this.state.transform.loadAbbreviation("default", "classic", author_title);
+                if (this.state.sys.normalizeAbbrevsKey) {
+                    author_title = this.state.sys.normalizeAbbrevsKey("classic", author_title);
+                }
+                this.state.transform.loadAbbreviation("default", "classic", author_title, this.Item.language);
                 if (this.state.transform.abbrevs["default"].classic[author_title]) {
                     this.state.tmp.done_vars.push("title");
                     this.state.output.append(this.state.transform.abbrevs["default"].classic[author_title], "empty", true);
@@ -12590,7 +12610,7 @@ CSL.NameOutput.prototype._checkNickname = function (name) {
                 // The first argument does not have to be the exact variable name.
                 normalizedKey = this.state.sys.normalizeAbbrevsKey("author", author);
             }
-            this.state.transform.loadAbbreviation("default", "nickname", normalizedKey);
+            this.state.transform.loadAbbreviation("default", "nickname", normalizedKey, this.Item.language);
             // XXX Why does this have to happen here?
             var myLocalName = this.state.transform.abbrevs["default"].nickname[normalizedKey];
             if (myLocalName) {
@@ -14280,56 +14300,95 @@ CSL.NameOutput.prototype.setRenderedName = function (name) {
 };
 
 CSL.NameOutput.prototype.fixupInstitution = function (name, varname, listpos) {
-    name = this._splitInstitution(name, varname, listpos);
-    // XXX This should be embedded in the institution name function.
-    if (this.institution.strings["reverse-order"]) {
-        name["long"].reverse();
+    if (!name.literal && name.family) {
+        name.literal = name.family;
+        delete name.family;
     }
-        
-    var long_form = name["long"];
-    var short_form = name["long"].slice();
-    var use_short_form = false;
-    var itemJurisdiction = this.Item.jurisdiction;
+    var longNameStr = name.literal;
+    var shortNameStr = longNameStr;
+    var ret = {
+        "long": longNameStr.split(/\s*\|\s*/),
+        "short": shortNameStr.split(/\s*\|\s*/),
+    };
     if (this.state.sys.getAbbreviation) {
-        var jurisdiction = itemJurisdiction;
-        for (var j = 0, jlen = long_form.length; j < jlen; j += 1) {
-            var abbrevKey = long_form[j];
-            jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", abbrevKey);
-            if (this.state.transform.abbrevs[jurisdiction]["institution-part"][abbrevKey]) {
-                short_form[j] = this.state.transform.abbrevs[jurisdiction]["institution-part"][abbrevKey];
-                use_short_form = true;
+        // Normalize longNameStr and shortNameStr
+        if (this.institution.strings.form === "short") {
+            let jurisdiction = this.Item.jurisdiction;
+            jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-entire", longNameStr, this.Item.language);
+            if (this.state.transform.abbrevs[jurisdiction]["institution-entire"][longNameStr]) {
+                longNameStr = this.state.transform.abbrevs[jurisdiction]["institution-entire"][longNameStr];
+            } else {
+                jurisdiction = this.Item.jurisdiction;
+                jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", abbrevKey, this.Item.language);
+                if (this.state.transform.abbrevs[jurisdiction]["institution-part"][longNameStr]) {
+                    longNameStr = this.state.transform.abbrevs[jurisdiction]["institution-part"][longNameStr];
+                }
+            }
+            longNameStr = this._quashChecks(jurisdiction, longNameStr);
+        }
+        if (["short", "short-long", "long-short"].indexOf(this.institution.strings["institution-parts"]) > -1) {
+            let jurisdiction = this.Item.jurisdiction;
+            jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", shortNameStr, this.Item.language);
+            if (this.state.transform.abbrevs[jurisdiction]["institution-part"][shortNameStr]) {
+                shortNameStr = this.state.transform.abbrevs[jurisdiction]["institution-part"][shortNameStr];
+            }
+            shortNameStr = this._quashChecks(jurisdiction, shortNameStr);
+            if (["short-long", "long-short"].indexOf(this.institution.strings["institution-parts"]) > -1) {
+                if (shortNameStr === longNameStr) {
+                    shortNameStr = "";
+                }
             }
         }
-    }
-    if (use_short_form) {
-        var delimiter = this.institution.strings.delimiter;
-        var use_first = this.institution.strings["use-first"];
-        if (use_first) {
-            if (!delimiter) {
-                delimiter = "|";
-            }
-            var buf = [];
-            for (var i=0,ilen=short_form.length;i<ilen;i++) {
-                short_form[i] = short_form[i].split("|").slice(0, use_first).join(delimiter);
+        // Split abbreviated strings
+        // For pure long, split and we're done.
+        ret["long"] = longNameStr.split(/\s*\|\s*/);
+        // For short, split and then try abbrev with institution-part on each element
+        ret["short"] = shortNameStr.split(/\s*\|\s*/);
+        if (["short", "short-long", "long-short"].indexOf(this.institution.strings["institution-parts"]) > -1) {
+            for (var j=ret["short"].length-1; j>-1; j--) {
+                let jurisdiction = this.Item.jurisdiction;
+                var abbrevKey = ret["short"][j];
+                jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", abbrevKey, this.Item.language);
+                if (this.state.transform.abbrevs[jurisdiction]["institution-part"][abbrevKey]) {
+                    ret["short"][j] = this.state.transform.abbrevs[jurisdiction]["institution-part"][abbrevKey];
+                }
+                if (ret["short"][j].indexOf("|") > -1) {
+                    let retShort = ret["short"];
+                    let splitShort = retShort[j].split(/\s*\|\s*/);
+                    ret["short"] = retShort.slice(0, j).concat(splitShort).concat(retShort.slice(j+1));
+                }
             }
         }
-        name["short"] = short_form;
-    } else {
-        name["short"] = [];
-    }
-    // trimmer is not available in getAmbiguousCite
-    if (!this.state.tmp.just_looking) {
-        if (itemJurisdiction) {
-            var trimmer = this.state.tmp.abbrev_trimmer;
-            if (trimmer && trimmer[itemJurisdiction] && trimmer[itemJurisdiction][varname]) {
-                for (var i=0,ilen=name["short"].length;i<ilen;i++) {
-                    var frag = name["short"][i];
-                    name["short"][i] = frag.replace(trimmer[itemJurisdiction][varname], "").trim();
+        if (this.state.opt.development_extensions.legacy_institution_name_ordering) {
+            ret["short"].reverse();
+        }
+        ret["short"] = this._trimInstitution(ret["short"]);
+        if (this.institution.strings["reverse-order"]) {
+            ret["short"].reverse();
+        }
+        // trimmer is not available in getAmbiguousCite
+        if (!this.state.tmp.just_looking) {
+            if (this.Item.jurisdiction) {
+                let jurisdiction = this.Item.jurisdiction;
+                var trimmer = this.state.tmp.abbrev_trimmer;
+                if (trimmer && trimmer[jurisdiction] && trimmer[jurisdiction][varname]) {
+                    for (var i=0,ilen=ret["short"].length;i<ilen;i++) {
+                        var frag = ret["short"][i];
+                        ret["short"][i] = frag.replace(trimmer[jurisdiction][varname], "").trim();
+                    }
                 }
             }
         }
     }
-    return name;
+    if (this.state.opt.development_extensions.legacy_institution_name_ordering) {
+        ret["long"].reverse();
+    }
+    ret["long"] = this._trimInstitution(ret["long"]);
+    if (this.institution.strings["reverse-order"]) {
+        ret["long"].reverse();
+    }
+
+    return ret;
 };
 
 
@@ -14354,121 +14413,81 @@ CSL.NameOutput.prototype.getStaticOrder = function (name, refresh) {
     return static_ordering_val;
 };
 
-
-CSL.NameOutput.prototype._splitInstitution = function (value, v, i) {
-    var ret = {};
-    // Due to a bug in Juris-M, there are a small number of items in my accounts that have
-    // a institution parent, and a personal child. The bug that created them was fixed before
-    // release, but this hack keeps them from crashing the processor.
-    if (!value.literal && value.family) {
-        value.literal = value.family;
-        delete value.family;
+CSL.NameOutput.prototype._quashChecks = function (jurisdiction, str) {
+    var str = this.state.transform.quashCheck(jurisdiction, str);
+    // If the abbreviation has date cut-offs, find the most recent
+    // abbreviation within scope.
+    var lst = str.split(/>>[0-9]{4}>>/);
+    var m = str.match(/>>([0-9]{4})>>/);
+    str = lst.pop();
+    var date = this.Item["original-date"] ? this.Item["original-date"] : this.Item["issued"];
+    if (date) {
+        date = parseInt(date.year, 10);
+        date = isNaN(date) ? false : date;
     }
-    var splitInstitution = value.literal.replace(/\s*\|\s*/g, "|");
-    // check for total and utter abbreviation IFF form="short"
-    splitInstitution = splitInstitution.split("|");
-    if (this.institution.strings.form === "short" && this.state.sys.getAbbreviation) {
-        // On a match, drop unused elements to yield a single key.
-        var itemJurisdiction = this.Item.jurisdiction;
-        for (var j = splitInstitution.length; j > 0; j += -1) {
-            var jurisdiction = itemJurisdiction;
-            var str = splitInstitution.slice(0, j).join("|");
-            var abbrevKey = str;
-            jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-entire", abbrevKey);
-            if (this.state.transform.abbrevs[jurisdiction]["institution-entire"][abbrevKey]) {
-                var splitLst = this.state.transform.abbrevs[jurisdiction]["institution-entire"][abbrevKey];
-
-                splitLst = this.state.transform.quashCheck(itemJurisdiction, splitLst);
-
-                // If the abbreviation has date cut-offs, find the most recent
-                // abbreviation within scope.
-                var splitSplitLst = splitLst.split(/>>[0-9]{4}>>/);
-                var m = splitLst.match(/>>([0-9]{4})>>/);
-                splitLst = splitSplitLst.pop();
-                if (splitSplitLst.length > 0 && this.Item["original-date"] && this.Item["original-date"].year) {
-                    for (var k=m.length - 1; k > 0; k += -1) {
-                        if (parseInt(this.Item["original-date"].year, 10) >= parseInt(m[k], 10)) {
-                            break;
-                        }
-                        splitLst = splitSplitLst.pop();
-                    }
+    if (date) {
+        if (lst.length > 0) {
+            for (var k=m.length-1; k>0; k--) {
+                if (date >= parseInt(m[k], 10)) {
+                    break;
                 }
-                splitLst = splitLst.replace(/\s*\|\s*/g, "|");
-                splitInstitution = [splitLst];
-                break;
+                str = lst.pop();
             }
         }
+        str = str.replace(/\s*\|\s*/g, "|");
     }
-    splitInstitution.reverse();
-    //print("into _trimInstitution with splitInstitution, v, i = "+splitInstitution+", "+v+", "+i);
-    ret["long"] = this._trimInstitution(splitInstitution, v, i);
-    return ret;
-};
+    return str;
+}
 
-CSL.NameOutput.prototype._trimInstitution = function (subunits, v) {
-	// 
+CSL.NameOutput.prototype._trimInstitution = function (subunits) {
+	// Oh! Good catch in the tests. This happens before abbrevs.
+    // Won't work that way. Need to do abbrev substitute first,
+    // and apply this separately to long and to short.
     var use_first = false;
-    var append_last = false;
-    var s = subunits.slice();
     var stop_last = false;
+    var use_last = false;
+    var stop_first = false;
+    var s = subunits.slice();
     if (this.institution) {
+        // If use_first, apply stop_last, then apply use_first;
+        // If use_last, apply stop_first, then apply use_last;
         if ("undefined" !== typeof this.institution.strings["use-first"]) {
+            // this.state.sys.print("use-first OK");
             use_first = this.institution.strings["use-first"];
         }
-        if ("undefined" !== typeof this.institution.strings["stop-last"]) {
-            // stop-last is negative when present
-            stop_last = this.institution.strings["stop-last"];
-        } else if ("authority" === v && this.state.tmp.authority_stop_last) {
-            stop_last = this.state.tmp.authority_stop_last;
-        }
-        if (stop_last) {
-            s = s.slice(0, stop_last);
-            subunits = subunits.slice(0, stop_last);
-        }
         if ("undefined" !== typeof this.institution.strings["use-last"]) {
-            append_last = this.institution.strings["use-last"];
+            // this.state.sys.print("use-last OK");
+            use_last = this.institution.strings["use-last"];
         }
-        if ("authority" === v) {
-            if (stop_last) {
-                this.state.tmp.authority_stop_last = stop_last;
-            }
-            if (append_last)  {
-                this.state.tmp.authority_stop_last += (append_last * -1);
-            }
+        if ("undefined" !== typeof this.institution.strings["stop-first"]) {
+            // this.state.sys.print("stop-first OK");
+            stop_first = this.institution.strings["stop-first"];
         }
-    }
-    if (false === use_first) {
-        if (this.persons[v].length === 0) {
-            use_first = this.institution.strings["substitute-use-first"];
+        if ("undefined" !== typeof this.institution.strings["stop-last"]) {
+            stop_last = this.institution.strings["stop-last"];
         }
-        if (!use_first) {
-            use_first = 0;
-        }
-    }
-    if (false === append_last) {
-        if (!use_first) {
-            append_last = subunits.length;
-        } else {
-            append_last = 0;
-        }
-    }
-    // Now that we've determined the value of append_last
-    // (use-last), avoid overlaps.
-    if (use_first > subunits.length - append_last) {
-        use_first = subunits.length - append_last;
-    }
 
-    // This could be more clear. use-last takes priority
-    // in the event of overlap, because of adjustment above
-    subunits = subunits.slice(0, use_first);
-    s = s.slice(use_first);
-    if (append_last) {
-        if (append_last > s.length) {
-            append_last = s.length;
+        if (use_first) {
+            if (stop_last) {
+                s = s.slice(0, stop_last * -1);
+            }
+            s = s.slice(0, use_first);
         }
-        if (append_last) {
-            subunits = subunits.concat(s.slice((s.length - append_last)));
+        
+        if (use_last) {
+            var ss = subunits.slice();
+            if (use_first) {
+                stop_first = use_first;
+            } else {
+                s = [];
+            }
+            if (stop_first) {
+                ss = ss.slice(stop_first);
+            }
+            ss = ss.slice(use_last * -1);
+            s = s.concat(ss);
         }
+        subunits = s;
     }
     return subunits;
 };
@@ -15490,6 +15509,11 @@ CSL.Node.text = {
                             }
                         }
                         state.output.append(myterm, this);
+                        if (state.tmp.can_block_substitute) {
+                            // Black magic here. This causes the cs:substitution condition to pass,
+                            // blocking further rendering within its scope. 
+                            state.tmp.can_substitute.replace(false, CSL.LITERAL);
+                        }
                     };
                     this.execs.push(func);
                     state.build.term = false;
@@ -15697,6 +15721,11 @@ CSL.Node.text = {
                         // true flags that this is a literal-value term
                         CSL.UPDATE_GROUP_CONTEXT_CONDITION(state, this.strings.value, true, this);
                         state.output.append(this.strings.value, this);
+                        if (state.tmp.can_block_substitute) {
+                            // Black magic here. This causes the cs:substitution condition to pass,
+                            // blocking further rendering within its scope. 
+                            state.tmp.can_substitute.replace(false, CSL.LITERAL);
+                        }
                     };
                     this.execs.push(func);
                     // otherwise no output
@@ -17294,12 +17323,16 @@ CSL.Attributes["@use-first"] = function (state, arg) {
     this.strings["use-first"] = parseInt(arg, 10);
 };
 
-CSL.Attributes["@stop-last"] = function (state, arg) {
-    this.strings["stop-last"] = parseInt(arg, 10) * -1;
-};
-
 CSL.Attributes["@use-last"] = function (state, arg) {
     this.strings["use-last"] = parseInt(arg, 10);
+};
+
+CSL.Attributes["@stop-first"] = function (state, arg) {
+    this.strings["stop-first"] = parseInt(arg, 10);
+};
+
+CSL.Attributes["@stop-last"] = function (state, arg) {
+    this.strings["stop-last"] = parseInt(arg, 10) * -1;
 };
 
 
@@ -17434,7 +17467,7 @@ CSL.Parallel.prototype.StartCitation = function (sortedItems, out) {
         var nextItem = sortedItems[i+1][0];
         var freshMatchList = false;
         var info = {};
-        if (sortedItems[i][0].seeAlso && !parallelMatchList) {
+        if (sortedItems[i][0].seeAlso && sortedItems[i][0].seeAlso.length > 0 && !parallelMatchList) {
             freshMatchList = true;
             parallelMatchList = [sortedItems[i][0].id].concat(sortedItems[i][0].seeAlso);
             var tempMatchList = parallelMatchList.slice();
@@ -17745,7 +17778,7 @@ CSL.Transform = function (state) {
             } else {
                 preferredJurisdiction = "default";
             }
-            var jurisdiction = state.transform.loadAbbreviation(preferredJurisdiction, myabbrev_family, normalizedKey, Item.type);
+            var jurisdiction = state.transform.loadAbbreviation(preferredJurisdiction, myabbrev_family, normalizedKey, Item.language);
 
             // Some rules:
             // # variable === "country"
@@ -17963,9 +17996,14 @@ CSL.Transform = function (state) {
     // Setter for abbreviation lists
     // This initializes a single abbreviation based on known
     // data.
-    function loadAbbreviation(jurisdiction, category, orig, itemType) {
+    function loadAbbreviation(jurisdiction, category, orig, lang) {
         if (!jurisdiction) {
             jurisdiction = "default";
+        }
+        var country = jurisdiction.split(":")[0];
+        var domain = CSL.getAbbrevsDomain(state, country, lang);
+        if (domain) {
+            jurisdiction += ("@" + domain);
         }
         if (!orig) {
             if (!state.transform.abbrevs[jurisdiction]) {
@@ -17984,9 +18022,12 @@ CSL.Transform = function (state) {
         //
         // See testrunner_stdrhino.js for an example.
         if (state.sys.getAbbreviation) {
-            jurisdiction = state.sys.getAbbreviation(state.opt.styleID, state.transform.abbrevs, jurisdiction, category, orig, itemType, true);
+            jurisdiction = state.sys.getAbbreviation(state.opt.styleID, state.transform.abbrevs, jurisdiction, category, orig);
             if (!jurisdiction) {
                 jurisdiction = "default";
+                if (domain) {
+                    jurisdiction += ("@" + domain);
+                }
             }
         }
         return jurisdiction;
@@ -19199,6 +19240,8 @@ CSL.Util.Dates.year.imperial = function (state, num, end) {
         label = '\u5e73\u6210';
         offset = 1988;
     }
+    // This entire "imperial" code block should be cut. Scraped input
+    // for this will be too ratty to be useful anyway.
     if (label && offset) {
         var normalizedKey = label;
         if (state.sys.normalizeAbbrevsKey) {
@@ -19207,7 +19250,9 @@ CSL.Util.Dates.year.imperial = function (state, num, end) {
             normalizedKey = state.sys.normalizeAbbrevsKey("number", label);
         }
         if (!state.transform.abbrevs['default']['number'][normalizedKey]) {
-            state.transform.loadAbbreviation('default', "number", normalizedKey);
+            // loadAbbreviation normally takes an item as fourth argument.
+            // It is not available here, 
+            state.transform.loadAbbreviation('default', "number", normalizedKey, null);
         }
         if (state.transform.abbrevs['default']['number'][normalizedKey]) {
             label = state.transform.abbrevs['default']['number'][normalizedKey];
@@ -20584,16 +20629,23 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
 
         // No need for this.
         //val = ("" + val).replace(/^\"/, "").replace(/\"$/, "");
-
-        var jurisdiction = this.transform.loadAbbreviation(ItemObject.jurisdiction, "number", val);
+        if (this.sys.normalizeAbbrevsKey) {
+            var normval = this.sys.normalizeAbbrevsKey(realVariable, val);
+        } else {
+            var normval = val;
+        }
+        var jurisdiction = this.transform.loadAbbreviation(ItemObject.jurisdiction, "number", normval, ItemObject.language);
         if (this.transform.abbrevs[jurisdiction].number) {
-            if (this.transform.abbrevs[jurisdiction].number[val]) {
-                val = this.transform.abbrevs[jurisdiction].number[val];
+            if (this.transform.abbrevs[jurisdiction].number[normval]) {
+                val = this.transform.abbrevs[jurisdiction].number[normval];
             } else {
+                
+                // *** This is terrible ***
+                
                 // Strings rendered via cs:number should not be added to the abbreviations
                 // UI unless they test non-numeric. The test happens below.
-                if ("undefined" !== typeof this.transform.abbrevs[jurisdiction].number[val]) {
-                    delete this.transform.abbrevs[jurisdiction].number[val];
+                if ("undefined" !== typeof this.transform.abbrevs[jurisdiction].number[normval]) {
+                    delete this.transform.abbrevs[jurisdiction].number[normval];
                 }
             }
         }
@@ -24320,12 +24372,71 @@ CSL.Engine.prototype.getJurisdictionList = function (jurisdiction) {
     var jurisdictionList = [];
     var jurisdictionElems = jurisdiction.split(":");
     for (var j=jurisdictionElems.length;j>0;j--) {
-        jurisdictionList.push(jurisdictionElems.slice(0,j).join(":"));
+        var composedID = jurisdictionElems.slice(0,j).join(":");
+        jurisdictionList.push(composedID);
+        if (this.opt.jurisdiction_fallbacks[composedID]) {
+            var fallback = this.opt.jurisdiction_fallbacks[composedID];
+            jurisdictionList.push(fallback);
+        }
     }
     if (jurisdictionList.indexOf("us") === -1) {
         jurisdictionList.push("us");
     }
     return jurisdictionList;
+};
+
+CSL.Engine.prototype.loadStyleModule = function (jurisdiction, xmlSource, skipFallback) {
+    var myFallback = null;
+    var macroCount = 0;
+    this.juris[jurisdiction] = {};
+    var myXml = CSL.setupXml(xmlSource);
+    myXml.addMissingNameNodes(myXml.dataObj);
+    myXml.addInstitutionNodes(myXml.dataObj);
+    myXml.insertPublisherAndPlace(myXml.dataObj);
+    myXml.flagDateMacros(myXml.dataObj);
+    var myNodes = myXml.getNodesByName(myXml.dataObj, "law-module");
+    for (var i=0,ilen=myNodes.length;i<ilen;i++) {
+        var myTypes = myXml.getAttributeValue(myNodes[i],"types");
+        if (myTypes) {
+            this.juris[jurisdiction].types = {};
+            myTypes =  myTypes.split(/\s+/);
+            for (var j=0,jlen=myTypes.length;j<jlen;j++) {
+                this.juris[jurisdiction].types[myTypes[j]] = true;
+            }
+        }
+        if (!skipFallback) {
+            myFallback = myXml.getAttributeValue(myNodes[i],"fallback");
+            if (myFallback) {
+                if (jurisdiction !== "us") {
+                    this.opt.jurisdiction_fallbacks[jurisdiction] = myFallback;
+                }
+            }
+        }
+    }
+    var lang = this.opt.lang ? this.opt.lang : this.opt["default-locale"][0];
+    CSL.SET_COURT_CLASSES(this, lang, myXml, myXml.dataObj);
+    
+    if (!this.juris[jurisdiction].types) {
+        this.juris[jurisdiction].types = CSL.MODULE_TYPES;
+    }
+    var myNodes = myXml.getNodesByName(myXml.dataObj, "macro");
+    for (var i=0,ilen=myNodes.length;i<ilen;i++) {
+        var myName = myXml.getAttributeValue(myNodes[i], "name");
+        if (!CSL.MODULE_MACROS[myName]) {
+            CSL.debug("CSL: skipping non-modular macro name \"" + myName + "\" in module context");
+            continue;
+        }
+        macroCount++;
+        this.juris[jurisdiction][myName] = [];
+        // Must use the same XML parser for style and modules.
+        this.buildTokenLists(myNodes[i], this.juris[jurisdiction][myName]);
+        this.configureTokenList(this.juris[jurisdiction][myName]);
+    }
+    //if (macroCount < Object.keys(CSL.MODULE_MACROS).length) {
+    //    var missing = [];
+    //    throw "CSL ERROR: Incomplete jurisdiction style module for: " + jurisdiction;
+    //}
+    return myFallback;
 };
 
 CSL.Engine.prototype.retrieveAllStyleModules = function (jurisdictionList) {
