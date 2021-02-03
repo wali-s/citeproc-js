@@ -774,8 +774,8 @@ CSL.NameOutput.prototype._nameSuffix = function (name) {
 
     var str = name.suffix, ret;
 
-    if ("string" === typeof this.state.inheritOpt(this.name, "initialize-with")) {
-        str = CSL.Util.Names.initializeWith(this.state, name.suffix, this.state.inheritOpt(this.name, "initialize-with"), true);
+    if (str && "string" === typeof this.state.inheritOpt(this.name, "initialize-with")) {
+        str = CSL.Util.Names.initializeWith(this.state, str, this.state.inheritOpt(this.name, "initialize-with"), true);
     }
 
     str = this._stripPeriods("family", str);
@@ -1029,7 +1029,7 @@ CSL.NameOutput.prototype.fixupInstitution = function (name, varname, listpos) {
                 longNameStr = this.state.transform.abbrevs[jurisdiction]["institution-entire"][longNameStr];
             } else {
                 jurisdiction = this.Item.jurisdiction;
-                jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", abbrevKey, this.Item.language);
+                jurisdiction = this.state.transform.loadAbbreviation(jurisdiction, "institution-part", longNameStr, this.Item.language);
                 if (this.state.transform.abbrevs[jurisdiction]["institution-part"][longNameStr]) {
                     longNameStr = this.state.transform.abbrevs[jurisdiction]["institution-part"][longNameStr];
                 }

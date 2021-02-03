@@ -195,7 +195,7 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
     if (localeAnd === localeAmpersand) {
         localeAmpersand = "&";
     }
-    
+
     // XXXX shadow_numbers should carry an array of objects with
     // XXXX full data for each. The test of a number should be
     // XXXX a separate function, possibly supported by a splitter
@@ -302,6 +302,11 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
         str = normalizeFieldValue(str, defaultLabel);
 
         var jmrex, jsrex, mystr;
+        if ("page" === variable) {
+            if (str.indexOf("\u2013") > -1) {
+                str = str.replace(/\u2013/g, "-");
+            }
+        }
         if (str.indexOf("\\-") > -1) {
             jmrex = new RegExp(joinerMatchRex.source.replace("\\-", ""));
             jsrex = new RegExp(joinerSplitRex.source.replace("\\-", ""));
@@ -784,6 +789,10 @@ CSL.Engine.prototype.processNumber = function (node, ItemObject, variable) {
         val = ItemObject[realVariable];
     }
 
+    if (val && realVariable === "number" && ItemObject.type === "legal_case") {
+        val = val.replace(/[\\]*-/g, "\\-");
+    }
+
     // XXX HOLDING THIS
     // Apply short form ONLY if first element tests is-numeric=false
     if (val && this.sys.getAbbreviation) {
@@ -978,9 +987,9 @@ CSL.Util.outputNumericField = function(state, varname, itemID) {
         if (num.collapsible) {
             var blob;
             if (num.value.match(/^[1-9][0-9]*$/)) {
-                blob = new CSL.NumericBlob(num.particle, parseInt(num.value, 10), numStyling, itemID);
+                blob = new CSL.NumericBlob(state, num.particle, parseInt(num.value, 10), numStyling, itemID);
             } else {
-                blob = new CSL.NumericBlob(num.particle, num.value, numStyling, itemID);
+                blob = new CSL.NumericBlob(state, num.particle, num.value, numStyling, itemID);
             }
             if ("undefined" === typeof blob.gender) {
                 blob.gender = state.locale[state.opt.lang]["noun-genders"][varname];
